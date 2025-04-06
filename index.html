@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Responsive Scoreboard</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      font-weight: bold;
+    }
+    html, body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      height: 100%;
+      background: linear-gradient(135deg, #1f4037, #99f2c8);
+    }
+    .container {
+      display: flex;
+      flex-wrap: wrap;
+      width: 100vw;
+      height: calc(100vh - 40px);
+      padding-top: 50px;
+    }
+    .player {
+      width: 50%;
+      height: 50%;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-evenly;
+      position: relative;
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      text-align: center;
+      transition: background-color 0.5s ease;
+    }
+    .score {
+  font-size: clamp(3.75rem, 10vw, 5.5rem);
+      margin: 5px 0;
+    }
+    .name {
+  font-size: 1.6rem;
+      margin-bottom: 6px;
+      border: none;
+      background: none;
+      text-align: center;
+      width: 100%;
+    }
+    .turn-indicator {
+  font-size: clamp(2rem, 3vw, 2.5rem);
+      margin: 4px 0;
+    }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 6px;
+      margin-top: 5px;
+    }
+    .controls button {
+      padding: 10px 16px;
+      font-size: 1rem;
+      border: none;
+      border-radius: 6px;
+      background: #444;
+      color: white;
+      cursor: pointer;
+      min-width: 80px;
+    }
+    .score-up {
+      animation: flash-green 0.5s;
+    }
+    .score-down {
+      animation: flash-red 0.5s;
+    }
+    @keyframes flash-green {
+      0% { background-color: #d4edda; }
+      100% { background-color: rgba(255, 255, 255, 0.9); }
+    }
+    @keyframes flash-red {
+      0% { background-color: #f8d7da; }
+      100% { background-color: rgba(255, 255, 255, 0.9); }
+    }
+    .player.flash-green {
+      animation: flashGreen 0.5s ease;
+    }
+    .player.flash-red {
+      animation: flashRed 0.5s ease;
+    }
+    @keyframes flashGreen {
+      0% { background-color: #d4edda; }
+      100% { background-color: rgba(255, 255, 255, 0.9); }
+    }
+    @keyframes flashRed {
+      0% { background-color: #f8d7da; }
+      100% { background-color: rgba(255, 255, 255, 0.9); }
+    }
+    @media (max-width: 768px) and (orientation: portrait) {
+  .container {
+    height: calc(100vh - 80px);
+  }
+  .player {
+    height: 45%;
+    padding: 4px;
+  }
+  .score {
+    font-size: 1.5rem;
+  }
+  .name {
+    font-size: 0.9rem;
+  }
+  .controls button {
+    font-size: 0.6rem;
+    padding: 4px 6px;
+    min-width: 50px;
+  }
+  .turn-indicator {
+    font-size: 0.65rem;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1024px) {
+  .score {
+    font-size: 4rem;
+  }
+  .name {
+    font-size: 1.8rem;
+  }
+  .turn-indicator {
+    font-size: 1.4rem;
+  }
+}
+  .name {
+    font-size: 1.5rem;
+  }
+  .turn-indicator {
+    font-size: 1.2rem;
+  }
+}
+  .player {
+    height: 48%;
+    padding: 4px;
+  }
+  .score {
+    font-size: 1.2rem;
+  }
+  .name {
+    font-size: 0.85rem;
+  }
+  .controls button {
+    font-size: 0.55rem;
+    padding: 4px 5px;
+    min-width: 48px;
+  }
+  .turn-indicator {
+    font-size: 0.6rem;
+  }
+}
+  .player {
+    height: 45%;
+    padding: 4px;
+  }
+  .score {
+    font-size: 1.5rem;
+  }
+  .name {
+    font-size: 0.9rem;
+  }
+  .controls button {
+    font-size: 0.6rem;
+    padding: 4px 6px;
+    min-width: 50px;
+  }
+  .turn-indicator {
+    font-size: 0.65rem;
+  }
+}
+    .player {
+      height: 45%;
+      padding: 4px;
+    }
+    .score {
+      font-size: 2rem;
+    }
+    .name {
+      font-size: 1rem;
+    }
+    .controls button {
+      font-size: 0.75rem;
+      padding: 6px 10px;
+      min-width: 60px;
+    }
+    .turn-indicator {
+      font-size: 0.75rem;
+    }
+  }
+</style>
+</head>
+<body>
+  <div style="position: absolute; top: 10px; left: 10px; z-index: 1000;">
+    <button onclick="document.getElementById('helpPopup').style.display='block'" style="padding: 5px 10px; font-size: 1rem; border: none; border-radius: 5px; background-color: white; color: #333; cursor: pointer; font-weight: bold;">Help</button>
+  </div>
+  <div style="position: absolute; top: 10px; right: 10px; color: white; font-size: 1rem; z-index: 1000;">
+    <label for="playerCount">Players:</label>
+    <select id="playerCount" onchange="updatePlayers()">
+      <option value="3">3</option>
+      <option value="4" selected>4</option>
+    </select>
+  </div>
+
+  <div style="position: absolute; top: 10px; left: 50%; transform: translateX(-50%); color: white; font-size: 1rem; z-index: 1000; display: flex; gap: 10px; align-items: center;">
+    <span>Win Rate:</span> <input type="number" id="winRate" value="3" style="width: 50px;">
+    <span>Foul Rate:</span> <input type="number" id="foulRate" value="1" style="width: 50px;">
+    <span>BC Rate:</span> <input type="number" id="bcRate" value="5" style="width: 50px;">
+  </div>
+  <div class="container" id="playerContainer"></div>
+
+  <script>
+    let scoreHistory = [];
+    let winPlayer = null;
+    let foulAction = null;
+    let foulPlayer = null;
+    let rotation = [];
+
+    function changeScore(playerId, delta) {
+      const player = document.getElementById(playerId);
+      const scoreEl = player.querySelector('.score');
+      let score = parseInt(scoreEl.dataset.score, 10);
+      score += delta;
+      scoreEl.dataset.score = score;
+      scoreEl.textContent = score;
+
+      // Log score change for undo
+      scoreHistory.push({ playerId, delta });
+
+      // Add animation class based on score change
+      const flashClass = delta > 0 ? 'flash-green' : 'flash-red';
+      player.classList.add(flashClass);
+      setTimeout(() => player.classList.remove(flashClass), 500);
+
+      const highlightClass = delta > 0 ? 'score-up' : 'score-down';
+      player.classList.add(highlightClass);
+      setTimeout(() => player.classList.remove(highlightClass), 500);
+    }
+
+    function undoLastAction() {
+      const lastAction = scoreHistory.pop();
+      if (!lastAction) return;
+
+      switch (lastAction.type) {
+        case 'WIN':
+          changeScore(lastAction.winner, -lastAction.value);
+          changeScore(lastAction.loser, lastAction.value);
+          break;
+        case 'FOUL':
+          changeScore(lastAction.source, -lastAction.value);
+          changeScore(lastAction.target, lastAction.value);
+          break;
+        case 'BC':
+          changeScore(lastAction.bcPlayer, -lastAction.value * lastAction.affected.length);
+          lastAction.affected.forEach(p => changeScore(p, lastAction.value));
+          break;
+        default:
+          changeScore(lastAction.playerId, -lastAction.delta);
+      }
+    }
+
+    function handleButton(action, playerId, el) {
+      const playerCount = 4;
+      const winRate = parseInt(document.getElementById('winRate').value);
+      const foulRate = parseInt(document.getElementById('foulRate').value);
+      const bcRate = parseInt(document.getElementById('bcRate').value);
+      const allPlayers = [...document.querySelectorAll('.player')];
+
+      switch(action) {
+        case 'WIN':
+          winPlayer = playerId;
+          break;
+        case 'LOSE':
+          if (winPlayer && winPlayer !== playerId) {
+            changeScore(winPlayer, winRate);
+            changeScore(playerId, -winRate);
+            scoreHistory.push({ type: 'WIN', winner: winPlayer, loser: playerId, value: winRate });
+            updateTurnOrder(winPlayer, playerId);
+            winPlayer = null;
+          }
+          break;
+        case 'FOUL+':
+        case 'FOUL-':
+          if (!foulAction) {
+            foulAction = action;
+            foulPlayer = playerId;
+            el.classList.add('active');
+          } else if (foulAction !== action && foulPlayer !== playerId) {
+            if (foulAction === 'FOUL+') {
+              changeScore(foulPlayer, foulRate);
+              changeScore(playerId, -foulRate);
+              scoreHistory.push({ type: 'FOUL', source: foulPlayer, target: playerId, value: foulRate });
+            } else {
+              changeScore(foulPlayer, -foulRate);
+              changeScore(playerId, foulRate);
+              scoreHistory.push({ type: 'FOUL', source: foulPlayer, target: playerId, value: -foulRate });
+            }
+            document.querySelectorAll('button.active').forEach(btn => btn.classList.remove('active'));
+            foulAction = null;
+            foulPlayer = null;
+          }
+          break;
+        case 'BC':
+          const others = allPlayers.filter(p => p.id !== playerId);
+          changeScore(playerId, bcRate * others.length);
+          others.forEach(p => changeScore(p.id, -bcRate));
+          scoreHistory.push({ type: 'BC', bcPlayer: playerId, value: bcRate, affected: others.map(p => p.id) });
+          break;
+      }
+    }
+
+    function createPlayer(id) {
+      return `
+        <div class="player" id="player${id}">
+          <input class="name" value="Player ${id}" />
+          <div class="score" data-score="0">0</div>
+          <div class="turn-indicator">Turn: -</div>
+          <div class="controls">
+            <button onclick="handleButton('WIN', 'player${id}', this)">WIN</button>
+            <button onclick="handleButton('LOSE', 'player${id}', this)">LOSE</button>
+            <button onclick="handleButton('FOUL+', 'player${id}', this)">FOUL+</button>
+            <button onclick="handleButton('FOUL-', 'player${id}', this)">FOUL-</button>
+            <button onclick="handleButton('BC', 'player${id}', this)">BC</button>
+            <button onclick="undoLastAction()">UNDO</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function updatePlayers() {
+      const container = document.getElementById('playerContainer');
+      const count = parseInt(document.getElementById('playerCount').value);
+      let html = '';
+      for (let i = 1; i <= count; i++) {
+        html += createPlayer(i);
+      }
+      container.innerHTML = html;
+    }
+
+    function updateTurnOrder(winnerId, loserId) {
+      const playerIds = ['player1', 'player2', 'player3', 'player4'];
+      let order = [];
+
+      switch (winnerId) {
+        case 'player1':
+          order = ['player1', 'player4', 'player2', 'player3'];
+          break;
+        case 'player2':
+          order = ['player2', 'player1', 'player3', 'player4'];
+          break;
+        case 'player3':
+          order = ['player3', 'player2', 'player4', 'player1'];
+          break;
+        case 'player4':
+          order = ['player4', 'player3', 'player1', 'player2'];
+          break;
+      }
+
+      const labelMap = ['FIRST', 'SECOND', 'THIRD', 'FOURTH'];
+      order.forEach((id, i) => {
+        const indicator = document.getElementById(id).querySelector('.turn-indicator');
+        if (indicator) indicator.textContent = `Turn: ${labelMap[i]}`;
+      });
+    }
+
+    window.onload = updatePlayers;
+  </script>
+  <div id="helpPopup" class="help-popup" style="display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.4);" onclick="event.target === this && (this.style.display='none')">
+    <div class="help-content" style="background-color: #fff; margin: 10% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 600px; border-radius: 10px; position: relative;">
+      <button class="close-btn" onclick="document.getElementById('helpPopup').style.display='none'" style="position: absolute; top: 10px; right: 15px; font-size: 1.2rem; background: none; border: none; cursor: pointer;">&times;</button>
+      <h2>How to Use the Scoreboard</h2>
+      <ul>
+        <li><strong>WIN / LOSE:</strong> Select the winning player with WIN, then the losing player with LOSE. The WIN rate will be applied and turn order updated.</li><br>
+        <li><strong>FOUL+ / FOUL-:</strong> First select FOUL+ or FOUL-, then select the opposing player using the opposite button. The FOUL rate will be applied accordingly.</li><br>
+        <li><strong>BC:</strong> Apply the BC rate to the selected player, and subtract from all others.</li><br>
+        <li><strong>UNDO:</strong> Reverts the most recent changes.</li><br>
+        <li><strong>Rates:</strong> Configure WIN, FOUL, and BC rates from the inputs at the top center.</li>
+      </ul>
+    </div>
+  </div>
+  <footer style="position: fixed; bottom: 0; width: 100%; text-align: center; padding: 10px 0; background-color: rgba(0, 0, 0, 0.3); color: white; font-size: 0.9rem; font-weight: bold;">
+    GovTech SIG @ 2025
+  </footer>
+</body>
+</html>
