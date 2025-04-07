@@ -38,11 +38,11 @@
       transition: background-color 0.5s ease;
     }
     .score {
-  font-size: clamp(3.75rem, 10vw, 5.5rem);
+      font-size: clamp(3.75rem, 10vw, 5.5rem);
       margin: 5px 0;
     }
     .name {
-  font-size: 1.6rem;
+      font-size: 1.6rem;
       margin-bottom: 6px;
       border: none;
       background: none;
@@ -50,7 +50,7 @@
       width: 100%;
     }
     .turn-indicator {
-  font-size: clamp(2rem, 3vw, 2.5rem);
+      font-size: clamp(2rem, 3vw, 2.5rem);
       margin: 4px 0;
     }
     .controls {
@@ -102,105 +102,64 @@
       0% { background-color: #f8d7da; }
       100% { background-color: rgba(255, 255, 255, 0.9); }
     }
-    @media (max-width: 768px) and (orientation: portrait) {
-  .container {
-    height: calc(100vh - 80px);
-  }
-  .player {
-    height: 45%;
-    padding: 4px;
-  }
-  .score {
-    font-size: 1.5rem;
-  }
-  .name {
-    font-size: 0.9rem;
-  }
-  .controls button {
-    font-size: 0.6rem;
-    padding: 4px 6px;
-    min-width: 50px;
-  }
-  .turn-indicator {
-    font-size: 0.65rem;
-  }
-}
 
-@media (min-width: 768px) and (max-width: 1024px) {
-  .score {
-    font-size: 4rem;
-  }
-  .name {
-    font-size: 1.8rem;
-  }
-  .turn-indicator {
-    font-size: 1.4rem;
-  }
-}
-  .name {
-    font-size: 1.5rem;
-  }
-  .turn-indicator {
-    font-size: 1.2rem;
-  }
-}
-  .player {
-    height: 48%;
-    padding: 4px;
-  }
-  .score {
-    font-size: 1.2rem;
-  }
-  .name {
-    font-size: 0.85rem;
-  }
-  .controls button {
-    font-size: 0.55rem;
-    padding: 4px 5px;
-    min-width: 48px;
-  }
-  .turn-indicator {
-    font-size: 0.6rem;
-  }
-}
-  .player {
-    height: 45%;
-    padding: 4px;
-  }
-  .score {
-    font-size: 1.5rem;
-  }
-  .name {
-    font-size: 0.9rem;
-  }
-  .controls button {
-    font-size: 0.6rem;
-    padding: 4px 6px;
-    min-width: 50px;
-  }
-  .turn-indicator {
-    font-size: 0.65rem;
-  }
-}
-    .player {
-      height: 45%;
-      padding: 4px;
+    @media (min-width: 768px) and (max-width: 1024px) {
+      .score {
+        font-size: 3rem;
+      }
+      .name {
+        font-size: 1.5rem;
+      }
+      .turn-indicator {
+        font-size: 1.4rem;
+      }
     }
-    .score {
-      font-size: 2rem;
+
+    @media (max-width: 932px) and (orientation: landscape) {
+      .player {
+        height: 45%;        /* reduce vertical height */
+        padding: 4px 6px;   /* tighten padding */
+      }
+
+      .score {
+        font-size: 1.8rem;
+      }
+
+      .name {
+        font-size: 1rem;
+      }
+
+      .turn-indicator {
+        font-size: 1.2rem;
+      }
+
+      .controls {
+        flex-wrap: wrap;
+        gap: 4px;
+        justify-content: center;
+      }
+
+      .controls button {
+        font-size: 0.7rem;
+        padding: 2px 4px;
+        min-width: 28px;
+        height: 34px;
+      }
+
+      input#winRate,
+      input#foulRate,
+      input#bcRate {
+        font-size: 0.9rem;
+        width: 40px;
+      }
+
+      div[style*="transform: translateX(-50%)"] {
+        font-size: 1rem;
+        gap: 5px;
+      }
     }
-    .name {
-      font-size: 1rem;
-    }
-    .controls button {
-      font-size: 0.75rem;
-      padding: 6px 10px;
-      min-width: 60px;
-    }
-    .turn-indicator {
-      font-size: 0.75rem;
-    }
-  }
+
+
 </style>
 </head>
 <body>
