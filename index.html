@@ -38,7 +38,7 @@
       transition: background-color 0.5s ease;
     }
     .score {
-      font-size: clamp(3.75rem, 10vw, 5.5rem);
+      font-size: clamp(3.75rem, 10vw, 3.5rem);
       margin: 5px 0;
     }
     .name {
@@ -50,7 +50,7 @@
       width: 100%;
     }
     .turn-indicator {
-      font-size: clamp(2rem, 3vw, 2.5rem);
+      font-size: clamp(1.7rem, 3vw, 1.7rem);
       margin: 4px 0;
     }
     .controls {
@@ -61,8 +61,8 @@
       margin-top: 5px;
     }
     .controls button {
-      width: 60px;
-      height: 60px;
+      width: 50px;
+      height: 50px;
       font-size: 0.85rem;
       border: none;
       border-radius: 8px;
@@ -103,12 +103,12 @@
       100% { background-color: rgba(255, 255, 255, 0.9); }
     }
 
-    @media (min-width: 768px) and (max-width: 1024px) {
+    @media (min-width: 768px) and (max-width: 834px) and (min-height: 1024px) {
       .score {
-        font-size: 3rem;
+        font-size: 1.7rem;
       }
       .name {
-        font-size: 1.5rem;
+        font-size: 1.4rem;
       }
       .turn-indicator {
         font-size: 1.4rem;
@@ -122,7 +122,7 @@
       }
 
       .score {
-        font-size: 1.8rem;
+        font-size: 1.3rem;
       }
 
       .name {
@@ -143,7 +143,7 @@
         font-size: 0.7rem;
         padding: 2px 4px;
         min-width: 28px;
-        height: 34px;
+        height: 30px;
       }
 
       input#winRate,
@@ -158,8 +158,6 @@
         gap: 5px;
       }
     }
-
-
 </style>
 </head>
 <body>
@@ -350,8 +348,8 @@
       </ul>
     </div>
   </div>
-  <footer style="position: fixed; bottom: 0; width: 100%; text-align: center; padding: 10px 0; background-color: rgba(0, 0, 0, 0.3); color: white; font-size: 0.9rem; font-weight: bold;">
-    GovTech SIG @ 2025
-  </footer>
+  <!--<footer style="position: fixed; bottom: 0; width: 100%; text-align: center; padding: 10px 0; background-color: rgba(0, 0, 0, 0.3); color: white; font-size: 0.9rem; font-weight: bold;">
+    Guard Degen @ 2025
+  </footer>-->
 </body>
 </html>
