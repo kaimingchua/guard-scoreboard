@@ -40,16 +40,42 @@
   <div id="helpPopup" class="help-popup" style="display: none;" onclick="event.target === this && (this.style.display='none')">
     <div class="help-content">
       <button class="close-btn" onclick="document.getElementById('helpPopup').style.display='none'">&times;</button>
-      <h2>How to Use the Scoreboard</h2>
-      <ul>
-        <li><strong>WIN / LOSE:</strong> Select the winning player with WIN, then the losing player with LOSE. The WIN rate will be applied and turn order updated.</li><br>
-        <li><strong>FOUL+ / FOUL-:</strong> First select FOUL+ or FOUL-, then select the opposing player using the opposite button. The FOUL rate will be applied accordingly.</li><br>
-        <li><strong>BC:</strong> Apply the BC rate to the selected player, and subtract from all others.</li><br>
-        <li><strong>UNDO:</strong> Reverts the most recent changes.</li><br>
-        <li><strong>Rates:</strong> Configure WIN, FOUL, and BC rates from the inputs at the top center.</li>
+      <h2>📋 How to Use the Scoreboard</h2>
+      <ul class="help-list">
+        <li>
+          <strong>🏆 WIN / LOSE:</strong><br>
+          Click <strong>WIN</strong> for the winner, then <strong>LOSE</strong> for the loser.<br>
+          The WIN rate is applied and turn order is updated accordingly.
+        </li>
+        <li>
+          <strong>⚠️ FOUL+ / FOUL-:</strong><br>
+          Click <strong>FOUL+</strong> or <strong>FOUL-</strong> on one player, then select the other.<br>
+          The FOUL rate will be transferred between them.
+        </li>
+        <li>
+          <strong>🎯 BC (Break & Clear):</strong><br>
+          Applies the BC rate to the selected player and subtracts from all others.<br>
+          This also updates the turn order as if the player won.
+        </li>
+        <li>
+          <strong>↩️ UNDO:</strong><br>
+          Reverts the most recent action including score and turn order.
+        </li>
+        <li>
+          <strong>⚙️ Rates:</strong><br>
+          Set the WIN, FOUL, and BC values from the controls at the top center.
+        </li>
+        <li>
+          <strong>📜 History:</strong><br>
+          View all score updates, fouls, and BC actions with timestamps.
+        </li>
+        <li>
+          <strong>🧹 Clear Score Data:</strong><br>
+          Resets the scoreboard and turn order for a new match.
+        </li>
       </ul>
     </div>
-  </div>
+  </div>  
 
   <script src="script.js"></script>
 </body>
