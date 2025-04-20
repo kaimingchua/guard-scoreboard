@@ -9,7 +9,16 @@
 <body>
   <div style="position: absolute; top: 10px; left: 10px; z-index: 1000;">
     <button onclick="document.getElementById('helpPopup').style.display='block'" style="padding: 5px 10px; font-size: 1rem; border: none; border-radius: 5px; background-color: white; color: #333; cursor: pointer; font-weight: bold;">Help</button>
-    <button onclick="localStorage.removeItem('scoreboardData'); location.reload();" style="padding: 5px 10px; font-size: 1rem; border: none; border-radius: 5px; background-color: white; color: #333; cursor: pointer; font-weight: bold;">Clear Score Data</button>
+    <button onclick="clearGameData().style.display='block'" style="padding: 5px 10px; font-size: 1rem; border: none; border-radius: 5px; background-color: white; color: #333; cursor: pointer; font-weight: bold;">Clear Score Data</button>
+    <button onclick="document.getElementById('historyPopup').style.display='block'" style="padding: 5px 10px; font-size: 1rem; border: none; border-radius: 5px; background-color: white; color: #333; cursor: pointer; font-weight: bold;">History</button>
+  </div>
+
+  <div id="historyPopup" class="popup-overlay" onclick="if (event.target === this) this.style.display='none'">
+    <div class="popup-content">
+      <button class="close-btn" onclick="document.getElementById('historyPopup').style.display='none'">&times;</button>
+      <h2>Score History</h2>
+      <ul id="logList"></ul>
+    </div>
   </div>
 
   <div style="position: absolute; top: 10px; right: 10px; color: white; font-size: 1rem; z-index: 1000;">
