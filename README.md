@@ -20,6 +20,7 @@ Built using vanilla HTML, CSS, and JavaScript — no external libraries or frame
   - Foul Rate
   - Break Clear Rate
 - ✅ **Persistent scores** across page refreshes using `localStorage`
+- ✅ **Score History** Keeps a colour-coded log history of score updates with timestamps. 
 - ✅ Supports **safe area insets** (viewport-fit for iOS)
 
 ---
