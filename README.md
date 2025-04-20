@@ -19,7 +19,7 @@ Built using vanilla HTML, CSS, and JavaScript — no external libraries or frame
   - Win Rate
   - Foul Rate
   - Break Clear Rate
-- ✅ Built-in **Help popup**
+- ✅ **Persistent scores** across page refreshes using `localStorage`
 - ✅ Supports **safe area insets** (viewport-fit for iOS)
 
 ---
