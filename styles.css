@@ -62,9 +62,9 @@
   }
   
   .controls button {
-    width: 50px;
-    height: 50px;
-    font-size: 0.85rem;
+    width: 75px;
+    height: 60px;
+    font-size: 1rem;
     border: none;
     border-radius: 8px;
     background: #444;
@@ -294,3 +294,22 @@
     color: #333;
   }
   
+  .first-turn-btn {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    width: 60px;
+    height: 60px;
+    font-size: 0.65rem;
+    font-weight: bold;
+    background-color: #444;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    line-height: 1.1;
+  }  
