@@ -192,3 +192,75 @@
     }
   }
   
+  .popup-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.4);
+    z-index: 9999;
+    display: none;
+  }
+  
+  .popup-content {
+    background-color: white;
+    margin: 8% auto;
+    padding: 20px;
+    width: 80%;
+    max-width: 600px;
+    border-radius: 10px;
+    position: relative;
+    max-height: 70vh;
+    overflow-y: auto;
+    font-family: 'Segoe UI', sans-serif;
+  }
+  
+  .popup-content h2 {
+    margin-top: 0;
+  }
+  
+  #logList {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-size: 0.9rem;
+    color: #333;
+  }
+  
+  #logList li {
+    padding: 6px 0;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .close-btn {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 1.2rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+  }
+
+  #logList li {
+    padding: 4px 0;
+    font-size: 0.9rem;
+    border-bottom: 1px solid #eee;
+  }
+  
+  /* Color-coded log entries */
+  .log-win {
+    color: green;
+  }
+  .log-foul {
+    color: crimson;
+  }
+  .log-bc {
+    color: #007bff;
+  }
+  .log-default {
+    color: #333;
+  }
+  
