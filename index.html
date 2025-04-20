@@ -38,41 +38,21 @@
   <div class="container" id="playerContainer"></div>
 
   <div id="helpPopup" class="help-popup" style="display: none;" onclick="event.target === this && (this.style.display='none')">
-    <div class="help-content">
+    <div class="help-content" style="max-height: 400px; overflow-y: auto;">
       <button class="close-btn" onclick="document.getElementById('helpPopup').style.display='none'">&times;</button>
-      <h2>📋 How to Use the Scoreboard</h2>
+      <h2>🎱 How to Use the Scoreboard</h2>
       <ul class="help-list">
-        <li>
-          <strong>🏆 WIN / LOSE:</strong><br>
-          Click <strong>WIN</strong> for the winner, then <strong>LOSE</strong> for the loser.<br>
-          The WIN rate is applied and turn order is updated accordingly.
-        </li>
-        <li>
-          <strong>⚠️ FOUL+ / FOUL-:</strong><br>
-          Click <strong>FOUL+</strong> or <strong>FOUL-</strong> on one player, then select the other.<br>
-          The FOUL rate will be transferred between them.
-        </li>
-        <li>
-          <strong>🎯 BC (Break & Clear):</strong><br>
-          Applies the BC rate to the selected player and subtracts from all others.<br>
-          This also updates the turn order as if the player won.
-        </li>
-        <li>
-          <strong>↩️ UNDO:</strong><br>
-          Reverts the most recent action including score and turn order.
-        </li>
-        <li>
-          <strong>⚙️ Rates:</strong><br>
-          Set the WIN, FOUL, and BC values from the controls at the top center.
-        </li>
-        <li>
-          <strong>📜 History:</strong><br>
-          View all score updates, fouls, and BC actions with timestamps.
-        </li>
-        <li>
-          <strong>🧹 Clear Score Data:</strong><br>
-          Resets the scoreboard and turn order for a new match.
-        </li>
+        <li><strong>WIN:</strong> Adds the WIN rate to the selected player and subtracts from a fixed opponent. Updates turn order automatically.</li>
+        <li><strong>FOUL+:</strong> Adds the FOUL rate to the selected player and subtracts from a fixed opponent. Updates turn order just like WIN.</li>
+        <li><strong>BC:</strong> Adds the BC rate × number of other players to the selected player and subtracts BC rate from each opponent.</li>
+        <li><strong>RUNOUT:</strong> Adds the BC rate to the selected player and subtracts from a fixed opponent. Treated as a win. Updates turn order.</li>
+        <li><strong>GOLDEN BREAK:</strong> Adds <em>WIN rate × (number of other players)</em> to the selected player and subtracts WIN rate from all others. Updates turn order.</li>
+        <li><strong>UNDO:</strong> Reverts the most recent scoring action and restores previous turn order.</li>
+        <li><strong>FIRST TURN:</strong> Overrides the turn order so the selected player starts the next game.</li>
+        <li><strong>Manual Score Editing:</strong> Click a score to type a new value. Click outside the box to save it.</li>
+        <li><strong>Rates:</strong> Use the fields at the top center to set WIN, FOUL, and BC values.</li>
+        <li><strong>History:</strong> Click “📜 History” to view the log of actions with timestamps.</li>
+        <li><strong>Clear Score Data:</strong> Fully resets all scores and turn order.</li>
       </ul>
     </div>
   </div>  
