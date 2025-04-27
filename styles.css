@@ -53,6 +53,19 @@
     margin: 4px 0;
   }
   
+  .rate-configs {
+    position: absolute;
+    top: 10px;
+    left: 40%;
+    font-size: 0.8rem;
+    width: 50px;
+    color: white; 
+    z-index: 1000; 
+    display: flex; 
+    gap: 10px; 
+    align-items: center;
+  }
+  
   .controls {
     display: flex;
     flex-wrap: wrap;
@@ -112,6 +125,39 @@
     100% { background-color: rgba(255, 255, 255, 0.9); }
   }
   
+  .help-button {
+    padding: 5px 10px;
+    font-size: 0.8rem;
+    border: none;
+    border-radius: 5px;
+    background-color: white;
+    color: #333;
+    cursor: pointer;
+    font-weight: bold;
+  }
+
+  .clearGameData-button {
+    padding: 5px 10px;
+    font-size: 0.8rem;
+    border: none;
+    border-radius: 5px;
+    background-color: white;
+    color: #333;
+    cursor: pointer;
+    font-weight: bold;    
+  }
+
+  .history-button {
+    padding: 5px 10px;
+    font-size: 0.8rem;
+    border: none;
+    border-radius: 5px;
+    background-color: white;
+    color: #333;
+    cursor: pointer;
+    font-weight: bold;
+  }
+
   .help-popup {
     position: fixed;
     z-index: 2000;
@@ -172,43 +218,37 @@
     color: #888;
     font-weight: bold;
   }
-  
-  @media (min-width: 768px) and (max-width: 834px) and (min-height: 1024px) {
-    .score {
-      font-size: 1.7rem;
-    }
-    .name {
-      font-size: 1.4rem;
-    }
-    .turn-indicator {
-      font-size: 1.4rem;
-    }
-  }
-  
-  @media (max-width: 932px) and (orientation: landscape) {
+
+  /* IPAD MINI */
+  @media (min-width: 1024px) and (orientation: landscape) {
     .player {
       height: 45%;
       padding: 4px 6px;
     }
+        
     .score {
-      font-size: 1.3rem;
+      font-size: 3rem;
     }
+
     .name {
-      font-size: 1rem;
+      font-size: 1.7rem;
     }
+
     .turn-indicator {
       font-size: 1.2rem;
     }
+
     .controls {
       flex-wrap: wrap;
       gap: 4px;
       justify-content: center;
     }
+    
     .controls button {
       font-size: 0.7rem;
       padding: 2px 4px;
-      min-width: 28px;
-      height: 30px;
+      min-width: 40px;
+      height: 40px;
     }
     input#winRate,
     input#foulRate,
@@ -219,9 +259,76 @@
     div[style*="transform: translateX(-50%)"] {
       font-size: 1rem;
       gap: 5px;
-    }
+    }    
   }
+
+  @media (min-width: 896px) and (max-width: 932px) and (orientation: landscape) {
+    .player {
+      height: 45%;
+      padding: 4px 6px;
+    }
   
+    .score {
+      font-size: 1.8rem;
+    }
+  
+    .name {
+      font-size: 1rem;
+    }
+  
+    .turn-indicator {
+      font-size: 0.8rem;
+    }
+  
+    .controls {
+      flex-wrap: nowrap;
+      gap: 4px;
+      justify-content: center;
+    }
+  
+    .controls button {
+      font-size: 0.5rem;
+      width: 40px;
+      height: 40px;
+      padding: 0;
+      min-width: 0;
+      flex: 0 0 auto;
+    }
+  
+    /* forcefully shrink FIRST TURN button */
+    .first-turn-btn {
+      width: 26px !important;
+      height: 26px !important;
+      font-size: 0.4rem !important;
+      line-height: 1 !important;
+      padding: 0 !important;
+      top: 2px !important;
+      left: 2px !important;
+      border-radius: 4px !important;
+      background-color: #444;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      position: absolute;
+      border: none;
+      cursor: pointer;
+    }
+  
+    input#winRate,
+    input#foulRate,
+    input#bcRate {
+      font-size: 0.9rem;
+      width: 40px;
+    }
+  
+    div[style*="transform: translateX(-50%)"] {
+      font-size: 1rem;
+      gap: 5px;
+    }
+  }  
+
   .popup-overlay {
     position: fixed;
     top: 0;

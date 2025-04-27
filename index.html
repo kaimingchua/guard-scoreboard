@@ -8,9 +8,9 @@
 </head>
 <body>
   <div style="position: absolute; top: 10px; left: 10px; z-index: 1000;">
-    <button onclick="document.getElementById('helpPopup').style.display='block'" style="padding: 5px 10px; font-size: 1rem; border: none; border-radius: 5px; background-color: white; color: #333; cursor: pointer; font-weight: bold;">Help</button>
-    <button onclick="clearGameData().style.display='block'" style="padding: 5px 10px; font-size: 1rem; border: none; border-radius: 5px; background-color: white; color: #333; cursor: pointer; font-weight: bold;">Clear Score Data</button>
-    <button onclick="document.getElementById('historyPopup').style.display='block'" style="padding: 5px 10px; font-size: 1rem; border: none; border-radius: 5px; background-color: white; color: #333; cursor: pointer; font-weight: bold;">History</button>
+    <button onclick="document.getElementById('helpPopup').style.display='block'" class="help-button">Help</button>
+    <button onclick="clearGameData().style.display='block'" class="clearGameData-button">Clear Score Data</button>
+    <button onclick="document.getElementById('historyPopup').style.display='block'" class="history-button">History</button>
   </div>
 
   <div id="historyPopup" class="popup-overlay" onclick="if (event.target === this) this.style.display='none'">
@@ -29,10 +29,10 @@
     </select>
   </div>
 
-  <div style="position: absolute; top: 10px; left: 50%; transform: translateX(-50%); color: white; font-size: 1rem; z-index: 1000; display: flex; gap: 10px; align-items: center;">
-    <span>Win Rate:</span> <input type="number" id="winRate" value="3" style="width: 50px;">
-    <span>Foul Rate:</span> <input type="number" id="foulRate" value="1" style="width: 50px;">
-    <span>BC Rate:</span> <input type="number" id="bcRate" value="5" style="width: 50px;">
+  <div class="rate-configs">
+    <span>Win Rate:</span> <input type="number" id="winRate" value="3">
+    <span>Foul Rate:</span> <input type="number" id="foulRate" value="1">
+    <span>BC Rate:</span> <input type="number" id="bcRate" value="5">
   </div>
 
   <div class="container" id="playerContainer"></div>
