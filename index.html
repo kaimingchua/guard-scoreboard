@@ -1,59 +1,85 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Responsive Scoreboard</title>
-  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class'
+    }
+  </script>
+  <style>
+    html {
+      transition: background-color 0.3s, color 0.3s;
+    }
+    .fade {
+      transition: opacity 0.3s ease;
+    }
+    .transition-text {
+      transition: color 0.3s ease;
+    }
+  </style>
 </head>
-<body>
-  <div style="position: absolute; top: 10px; left: 10px; z-index: 1000;">
-    <button onclick="document.getElementById('helpPopup').style.display='block'" style="padding: 5px 10px; font-size: 1rem; border: none; border-radius: 5px; background-color: white; color: #333; cursor: pointer; font-weight: bold;">Help</button>
-    <button onclick="clearGameData().style.display='block'" style="padding: 5px 10px; font-size: 1rem; border: none; border-radius: 5px; background-color: white; color: #333; cursor: pointer; font-weight: bold;">Clear Score Data</button>
-    <button onclick="document.getElementById('historyPopup').style.display='block'" style="padding: 5px 10px; font-size: 1rem; border: none; border-radius: 5px; background-color: white; color: #333; cursor: pointer; font-weight: bold;">History</button>
-  </div>
+<body class="transition-colors duration-300 bg-gradient-to-br from-green-900 to-green-300 dark:from-gray-900 dark:to-black min-h-screen font-semibold text-black dark:text-white">
 
-  <div id="historyPopup" class="popup-overlay" onclick="if (event.target === this) this.style.display='none'">
-    <div class="popup-content">
-      <button class="close-btn" onclick="document.getElementById('historyPopup').style.display='none'">&times;</button>
-      <h2>Score History</h2>
-      <ul id="logList"></ul>
+  <!-- Header Controls -->
+  <div class="fixed top-0 left-0 w-full px-4 py-2 flex flex-wrap gap-4 justify-between items-center bg-black bg-opacity-30 z-50">
+    
+    <!-- Left Buttons -->
+    <div class="flex flex-wrap items-center gap-4">
+        <span class="text-white font-extrabold text-xl tracking-wide">WanDollah</span>
+        <div class="flex gap-2">
+          <button onclick="showHelp()" class="bg-white dark:bg-gray-700 px-3 py-1 rounded">Help</button>
+          <button onclick="clearGameData()" class="bg-white dark:bg-gray-700 px-3 py-1 rounded">Clear</button>
+          <button onclick="showHistory()" class="bg-white dark:bg-gray-700 px-3 py-1 rounded">History</button>
+        </div>
+      </div>      
+
+    <!-- Rate Inputs (always white text) -->
+    <div class="flex flex-wrap items-center gap-6 justify-center text-white">
+        <label class="text-lg font-bold">Win: <input type="number" id="winRate" value="3" class="w-14 px-1 text-black rounded" /></label>
+        <label class="text-lg font-bold">Foul: <input type="number" id="foulRate" value="1" class="w-14 px-1 text-black rounded" /></label>
+        <label class="text-lg font-bold">BC: <input type="number" id="bcRate" value="5" class="w-14 px-1 text-black rounded" /></label>
+      </div>
+
+    <!-- Player Count & Dark Mode -->
+    <div class="flex gap-2">
+      <button id="togglePlayerCount" onclick="togglePlayerMode()" class="bg-white dark:bg-gray-700 px-3 py-1 rounded transition-colors">3 Players Mode</button>
+      <button onclick="toggleDarkMode()" id="darkToggle" class="bg-white dark:bg-gray-700 px-3 py-1 rounded transition-colors">🌙</button>
+      <input type="hidden" id="playerCount" value="4" />
     </div>
   </div>
 
-  <div style="position: absolute; top: 10px; right: 10px; color: white; font-size: 1rem; z-index: 1000;">
-    <label for="playerCount">Players:</label>
-    <select id="playerCount" onchange="updatePlayers()">
-      <option value="3">3</option>
-      <option value="4" selected>4</option>
-    </select>
-  </div>
+  <!-- Turn Order Display (always white text) -->
+  <div id="turnOrderDisplay" class="mt-24 mb-2 text-center text-lg font-bold text-white transition-colors">Turn: -</div>
 
-  <div style="position: absolute; top: 10px; left: 50%; transform: translateX(-50%); color: white; font-size: 1rem; z-index: 1000; display: flex; gap: 10px; align-items: center;">
-    <span>Win Rate:</span> <input type="number" id="winRate" value="3" style="width: 50px;">
-    <span>Foul Rate:</span> <input type="number" id="foulRate" value="1" style="width: 50px;">
-    <span>BC Rate:</span> <input type="number" id="bcRate" value="5" style="width: 50px;">
-  </div>
+  <!-- Player Container -->
+  <div id="playerContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-4 px-4 pb-28"></div>
 
-  <div class="container" id="playerContainer"></div>
-
-  <div id="helpPopup" class="help-popup" style="display: none;" onclick="event.target === this && (this.style.display='none')">
-    <div class="help-content" style="max-height: 400px; overflow-y: auto;">
-      <button class="close-btn" onclick="document.getElementById('helpPopup').style.display='none'">&times;</button>
-      <h2>🎱 How to Use the Scoreboard</h2>
-      <ul class="help-list">
-        <li><strong>WIN:</strong> Adds the WIN rate to the selected player and subtracts from a fixed opponent. Updates turn order automatically.</li>
-        <li><strong>FOUL+:</strong> Adds the FOUL rate to the selected player and subtracts from a fixed opponent. Updates turn order just like WIN.</li>
-        <li><strong>BC:</strong> Adds the BC rate × number of other players to the selected player and subtracts BC rate from each opponent.</li>
-        <li><strong>RUNOUT:</strong> Adds the BC rate to the selected player and subtracts from a fixed opponent. Treated as a win. Updates turn order.</li>
-        <li><strong>GOLDEN BREAK:</strong> Adds <em>WIN rate × (number of other players)</em> to the selected player and subtracts WIN rate from all others. Updates turn order.</li>
-        <li><strong>UNDO:</strong> Reverts the most recent scoring action and restores previous turn order.</li>
-        <li><strong>FIRST TURN:</strong> Overrides the turn order so the selected player starts the next game.</li>
-        <li><strong>Manual Score Editing:</strong> Click a score to type a new value. Click outside the box to save it.</li>
-        <li><strong>Rates:</strong> Use the fields at the top center to set WIN, FOUL, and BC values.</li>
-        <li><strong>History:</strong> Click “📜 History” to view the log of actions with timestamps.</li>
-        <li><strong>Clear Score Data:</strong> Fully resets all scores and turn order.</li>
+  <!-- Help Popup -->
+  <div id="helpPopup" class="fixed inset-0 bg-black bg-opacity-50 hidden fade z-50 flex items-center justify-center">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg w-11/12 max-w-lg p-4 max-h-[80vh] overflow-y-auto relative text-black dark:text-white transition-colors">
+      <button onclick="hideHelp()" class="absolute top-2 right-3 text-xl font-bold text-gray-600 dark:text-white">&times;</button>
+      <h2 class="text-lg font-bold mb-3">🎱 How to Use the Scoreboard</h2>
+      <ul class="list-disc pl-6 space-y-2 text-sm">
+        <li><strong>WIN:</strong> Adds WIN rate, subtracts from previous player. Updates turn order.</li>
+        <li><strong>FOUL+:</strong> Adds FOUL rate, subtracts from previous player.</li>
+        <li><strong>BC:</strong> Adds BC × others, subtracts BC from each opponent.</li>
+        <li><strong>RUNOUT:</strong> Same as BC, treated like a win.</li>
+        <li><strong>GOLDEN:</strong> Adds WIN × others to player, subtracts WIN from others.</li>
+        <li><strong>UNDO:</strong> Reverts last action.</li>
       </ul>
+    </div>
+  </div>
+
+  <!-- History Popup -->  
+  <div id="historyPopup" class="fixed inset-0 bg-black bg-opacity-50 hidden fade z-50 flex items-center justify-center">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg w-11/12 max-w-lg p-4 max-h-[80vh] overflow-y-auto relative">
+      <button onclick="hideHistory()" class="absolute top-2 right-3 text-xl font-bold text-gray-600 dark:text-white">&times;</button>
+      <h2 class="text-lg font-bold mb-3">📜 Score History</h2>
+      <ul id="logList" class="text-sm space-y-2 text-black dark:text-white"></ul>
     </div>
   </div>  
 
