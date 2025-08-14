@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Responsive Scoreboard</title>
+  <title>Guard Scoreboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -11,49 +11,114 @@
     }
   </script>
   <style>
-    html {
-      transition: background-color 0.3s, color 0.3s;
-    }
-    .fade {
-      transition: opacity 0.3s ease;
-    }
-    .transition-text {
-      transition: color 0.3s ease;
-    }
+  /* Collapsible panel animation helpers */
+  #controlsPanel { will-change: max-height; }
+  @media (prefers-reduced-motion: reduce) {
+    #controlsPanel { transition: none !important; }
+  }
+
+  /* Light mode: warm rice-colored animated background */
+  html:not(.dark) body {
+    background: #faf3e0; /* fallback rice color */
+    color: #000 !important; /* force black text in light mode */
+  }
+
+  html:not(.dark) body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+
+    /* Rice tone with soft golden shifts */
+    background: linear-gradient(270deg,
+      #faf3e0,
+      #f5e6c8,
+      #fff8e7,
+      #f8ecda,
+      #faf3e0
+    );
+    background-size: 800% 800%;
+    animation: riceShift 25s ease-in-out infinite;
+  }
+
+  /* Smooth shifting animation */
+  @keyframes riceShift {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  /* Stop animation if reduced motion is set */
+  @media (prefers-reduced-motion: reduce) {
+    html:not(.dark) body::before { animation: none; }
+  }
+
+  html:not(.dark) body,
+  html:not(.dark) body * {
+    color: #000 !important;
+  }
   </style>
 </head>
-<body class="transition-colors duration-300 bg-gradient-to-br from-green-900 to-green-300 dark:from-gray-900 dark:to-black min-h-screen font-semibold text-black dark:text-white">
+<body class="transition-colors duration-300 dark:from-gray-900 dark:to-black min-h-screen font-semibold text-black dark:text-white">
 
-  <!-- Header Controls -->
-  <div class="fixed top-0 left-0 w-full px-4 py-2 flex flex-wrap gap-4 justify-between items-center bg-black bg-opacity-30 z-50">
-    
-    <!-- Left Buttons -->
+  <!-- Header (fixed) -->
+<div class="fixed top-0 left-0 w-full px-4 py-2 flex items-center justify-between bg-black/30 backdrop-blur z-50">
+  <span class="text-white font-extrabold text-xl tracking-wide">Guard!</span>
+
+  <button
+    id="controlsToggle"
+    class="bg-white dark:bg-gray-700 px-3 py-1 rounded transition-colors"
+    aria-expanded="false"
+    aria-controls="controlsPanel"
+  >
+    Controls ▾
+  </button>
+</div>
+
+<!-- Collapsible Controls Panel (fixed under header) -->
+<div
+  id="controlsPanel"
+  class="fixed left-0 right-0 top-[44px] mx-auto bg-white/95 dark:bg-gray-900/95 shadow-lg border-t border-gray-200 dark:border-gray-800 overflow-hidden max-h-0 transition-[max-height] duration-500 ease-in-out z-40"
+>
+  <div class="px-4 py-3 grid gap-4 sm:grid-cols-3 text-black dark:text-white">
+
+    <!-- Buttons -->
+    <div class="flex flex-wrap gap-2">
+      <button onclick="showHelp()" class="bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded">Help</button>
+      <button onclick="clearGameData()" class="bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded">Clear</button>
+      <button onclick="showHistory()" class="bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded">History</button>
+    </div>
+
+    <!-- Rates -->
     <div class="flex flex-wrap items-center gap-4">
-        <span class="text-white font-extrabold text-xl tracking-wide">WanDollah</span>
-        <div class="flex gap-2">
-          <button onclick="showHelp()" class="bg-white dark:bg-gray-700 px-3 py-1 rounded">Help</button>
-          <button onclick="clearGameData()" class="bg-white dark:bg-gray-700 px-3 py-1 rounded">Clear</button>
-          <button onclick="showHistory()" class="bg-white dark:bg-gray-700 px-3 py-1 rounded">History</button>
-        </div>
-      </div>      
+      <label class="font-bold">Win:
+        <input type="number" id="winRate" value="3" class="w-16 px-2 py-1 text-black rounded" />
+      </label>
+      <label class="font-bold">Foul:
+        <input type="number" id="foulRate" value="1" class="w-16 px-2 py-1 text-black rounded" />
+      </label>
+      <label class="font-bold">BC:
+        <input type="number" id="bcRate" value="5" class="w-16 px-2 py-1 text-black rounded" />
+      </label>
+    </div>
 
-    <!-- Rate Inputs (always white text) -->
-    <div class="flex flex-wrap items-center gap-6 justify-center text-white">
-        <label class="text-lg font-bold">Win: <input type="number" id="winRate" value="3" class="w-14 px-1 text-black rounded" /></label>
-        <label class="text-lg font-bold">Foul: <input type="number" id="foulRate" value="1" class="w-14 px-1 text-black rounded" /></label>
-        <label class="text-lg font-bold">BC: <input type="number" id="bcRate" value="5" class="w-14 px-1 text-black rounded" /></label>
-      </div>
-
-    <!-- Player Count & Dark Mode -->
-    <div class="flex gap-2">
-      <button id="togglePlayerCount" onclick="togglePlayerMode()" class="bg-white dark:bg-gray-700 px-3 py-1 rounded transition-colors">3 Players Mode</button>
-      <button onclick="toggleDarkMode()" id="darkToggle" class="bg-white dark:bg-gray-700 px-3 py-1 rounded transition-colors">🌙</button>
+    <!-- Player mode + Theme -->
+    <div class="flex flex-wrap gap-2">
+      <button id="togglePlayerCount" onclick="togglePlayerMode()" class="bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded transition-colors">
+        3 Players Mode
+      </button>
+      <button onclick="toggleDarkMode()" id="darkToggle" class="bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded transition-colors">
+        🌙
+      </button>
       <input type="hidden" id="playerCount" value="4" />
     </div>
-  </div>
 
-  <!-- Turn Order Display (always white text) -->
-  <div id="turnOrderDisplay" class="mt-24 mb-2 text-center text-lg font-bold text-white transition-colors">Turn: -</div>
+  </div>
+</div>
+
+  <!-- Turn Order Display -->
+  <div id="turnOrderDisplay" class="mt-24 sm:mt-28 mb-2 text-center text-lg font-bold text-white transition-colors">Turn: -</div>
 
   <!-- Player Container -->
   <div id="playerContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-4 px-4 pb-28"></div>
@@ -63,14 +128,14 @@
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg w-11/12 max-w-lg p-4 max-h-[80vh] overflow-y-auto relative text-black dark:text-white transition-colors">
       <button onclick="hideHelp()" class="absolute top-2 right-3 text-xl font-bold text-gray-600 dark:text-white">&times;</button>
       <h2 class="text-lg font-bold mb-3">🎱 How to Use the Scoreboard</h2>
-      <ul class="list-disc pl-6 space-y-2 text-sm">
-        <li><strong>WIN:</strong> Adds WIN rate, subtracts from previous player. Updates turn order.</li>
-        <li><strong>FOUL+:</strong> Adds FOUL rate, subtracts from previous player.</li>
-        <li><strong>BC:</strong> Adds BC × others, subtracts BC from each opponent.</li>
-        <li><strong>RUNOUT:</strong> Same as BC, treated like a win.</li>
-        <li><strong>GOLDEN:</strong> Adds WIN × others to player, subtracts WIN from others.</li>
-        <li><strong>UNDO:</strong> Reverts last action.</li>
-      </ul>
+        <ul class="list-disc pl-6 space-y-2 text-sm">
+          <li><strong>WIN:</strong> Adds <em>WIN</em> rate to the shooter and subtracts the same from the previous player. Also updates the turn order (Guard logic).</li>
+          <li><strong>FOUL+:</strong> Subtracts <em>FOUL</em> rate from the shooter and adds it to the previous player.</li>
+          <li><strong>BC (Break & Clear):</strong> Subtracts <em>BC</em> from each opponent and adds the total to the shooter. (Enabled only for the current shooter.)</li>
+          <li><strong>GOLDEN:</strong> Subtracts <em>WIN</em> from each opponent and adds the total to the shooter. (Enabled only for the current shooter.)</li>
+          <li><strong>UNDO:</strong> Open <em>History</em> and tap <em>Undo Last Action</em> (or press <kbd>z</kbd>).</li>
+          <li><strong>Tips:</strong> Click a score to set it manually. Toggle 3/4 players with the button at the top.</li>
+        </ul>
     </div>
   </div>
 
