@@ -1,4 +1,4 @@
-/* script.js — Pool guard scoring logic, adapted for your Tailwind UI (no RUNOUT) */
+/* Pool guard scoring logic */
 (() => {
   "use strict";
 
