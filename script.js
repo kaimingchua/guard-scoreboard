@@ -1,4 +1,3 @@
-/* Pool guard scoring logic + tabbed analytics */
 (() => {
   "use strict";
 
@@ -29,7 +28,9 @@
   const BC   = () => getRate("#bcRate");
 
   const axisColor = () => (document.documentElement.classList.contains("dark") ? "#fff" : "#000");
-  const currentPlayerIds = () => Object.keys(scores).map(k => Number(k));
+  //const currentPlayerIds = () => Object.keys(scores).map(k => Number(k));
+  const currentPlayerIds = () => (isFourPlayers ? [1,2,3,4] : [1,2,3]).filter(pid => scores[pid] !== undefined);
+
   const playerLabels = () => currentPlayerIds().map(pid => getPlayerName(pid));
   const deepCopy = (obj) => JSON.parse(JSON.stringify(obj));
 
@@ -188,10 +189,8 @@
             value="P${i}" />
           <span id="name-label-${i}" class="hidden"></span>
           <div class="leading-none">
-            <span id="score-${i}"
-              class="select-none block text-6xl sm:text-7xl md:text-8xl font-extrabold opacity-70"
-              style="line-height: 0.9;">0</span>
-            <div class="mt-1 text-xs opacity-70">Tap score to set manually</div>
+            <span id="score-${i}" class="score-text select-none block text-6xl sm:text-7xl md:text-8xl font-extrabold opacity-70">0</span>
+            <div class="mt-1 text-xs opacity-70"></div>
           </div>
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full max-w-md mt-2">
             <button data-action="win" class="px-3 py-2 rounded bg-green-500 text-white">WIN</button>
@@ -240,14 +239,25 @@
   function buildPlayers() {
     const wrap = $("#playerContainer");
     wrap.innerHTML = "";
+
+    // Decide number of players
     const count = isFourPlayers ? 4 : 3;
+
+    // Build exactly that many
     for (let i = 1; i <= count; i++) {
       if (scores[i] === undefined) scores[i] = 0;
       wrap.insertAdjacentHTML("beforeend", playerCardHTML(i));
       wirePlayerCard(i);
       $(`#score-${i}`).textContent = String(scores[i]);
     }
-    if (!isFourPlayers) delete scores[4];
+
+    // Clean up extra keys (like lingering player 4 in 3-player mode)
+    for (let i = count + 1; i <= 4; i++) {
+      delete scores[i];
+      const ghost = document.getElementById(`card-${i}`);
+      if (ghost) ghost.remove();
+    }
+
     setTurnOrderText();
     updateCardStyles();
     updateSpecialActionButtons();
@@ -486,10 +496,14 @@
   // --------- Share to Facebook --------
   async function shareScoreboardToFacebook() {
     try {
+      await document.fonts.ready;
       const node = document.getElementById("playerContainer");
       const bg = document.documentElement.classList.contains("dark") ? "#111827" : "#faf3e0";
-      const canvas = await html2canvas(node, { backgroundColor: bg, scale: 2 });
-
+      const canvas = await html2canvas(node, {
+        backgroundColor: bg,
+        scale: window.devicePixelRatio || 2,
+        useCORS: true
+      });
       const dataUrl = canvas.toDataURL("image/png");
       const base64 = dataUrl.split(",")[1];
 

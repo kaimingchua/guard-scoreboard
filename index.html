@@ -48,6 +48,15 @@
   html:not(.dark) body * {
     color: #000 !important;
   }
+
+  .score-text {
+    line-height: 1.1 !important;
+    display: block;
+    text-align: center;
+    height: auto;
+    overflow: visible;
+    margin-bottom: 0.5em;
+  }
   </style>
 </head>
 <body class="transition-colors duration-300 dark:from-gray-900 dark:to-black min-h-screen font-semibold text-black dark:text-white">
@@ -154,11 +163,9 @@
     </div>
   </div>
 
-  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>  
   <script src="script.js"></script>
-  <!-- Facebook SDK -->
   <script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js"></script>
 </body>
 </html>
