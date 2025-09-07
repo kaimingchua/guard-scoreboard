@@ -486,48 +486,39 @@
   // --------- Share to Facebook --------
   async function shareScoreboardToFacebook() {
     try {
-      if (!window.html2canvas) {
-        alert("html2canvas not loaded");
-        return;
-      }
-
-      // Capture scoreboard as PNG
       const node = document.getElementById("playerContainer");
       const bg = document.documentElement.classList.contains("dark") ? "#111827" : "#faf3e0";
       const canvas = await html2canvas(node, { backgroundColor: bg, scale: 2 });
+
       const dataUrl = canvas.toDataURL("image/png");
-      const blob = await (await fetch(dataUrl)).blob();
+      const base64 = dataUrl.split(",")[1];
 
-      // Convert to FormData
-      const formData = new FormData();
-      formData.append("source", blob, "score.png");
-      formData.append("caption", "Check out my Guard score!");
+      // Upload to ImgBB
+      const apiKey = "41bca9e040d3b313b1c5534806590902";
+      const fd = new FormData();
+      fd.append("image", base64);
 
-      // Ensure user is logged in
-      FB.login((response) => {
-        if (response.authResponse) {
-          const accessToken = response.authResponse.accessToken;
+      const resp = await fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, {
+        method: "POST",
+        body: fd
+      });
+      const json = await resp.json();
+      if (!json.success) throw new Error("Upload failed");
 
-          fetch(`https://graph.facebook.com/me/photos?access_token=${accessToken}`, {
-            method: "POST",
-            body: formData
-          })
-          .then(res => res.json())
-          .then(data => {
-            if (data.id) {
-              alert("Photo posted to Facebook successfully!");
-            } else {
-              console.error(data);
-              alert("Upload failed. Check console.");
-            }
-          });
-        } else {
-          alert("Login failed or not authorized.");
-        }
-      }, { scope: "publish_to_groups,publish_pages" }); // adjust depending where you post
+      const imgUrl = json.data.url;
+
+      // Build share page URL
+      const sharePage = `https://kaimingchua.github.io/guard-scoreboard/share.html?img=${encodeURIComponent(imgUrl)}`;
+
+      // Open Facebook share dialog
+      window.open(
+        `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(sharePage)}`,
+        "_blank",
+        "width=600,height=500"
+      );
     } catch (err) {
-      console.error("Error sharing:", err);
-      alert("Failed to share scoreboard.");
+      console.error("Share error:", err);
+      alert("Failed to share scoreboard. Check console.");
     }
   }
 
