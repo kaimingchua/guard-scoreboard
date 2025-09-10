@@ -1,8 +1,6 @@
 # 🎯 Guard Scoreboard App!
 
-A responsive, animated, and mobile-optimized scoreboard for 3–4 players. Tailored for pool games like SG Guard or other cue sports.
-
-Built with **Tailwind CSS**, **HTML**, and **vanilla JavaScript** — no build tools or frameworks required.
+A responsive, animated, and mobile-optimized scoreboard for 3–4 players. Tailored for Singapore Guard games.
 
 ---
 
@@ -18,13 +16,16 @@ Built with **Tailwind CSS**, **HTML**, and **vanilla JavaScript** — no build t
 - `FOUL+`: Subtract Foul Rate from shooter, add to previous player  
 - `BC` (Break Clear): Shooter gains, all others lose configurable BC points  
 - `GOLDEN`: Golden Break (uses Win Rate, distributed among all others)  
-- `UNDO`: Revert last action with turn order restored  
+- `UNDO`: Revert last action with turn order restored
 
 ### ⚙️ Input Controls
 - Configure:
   - Win Rate  
   - Foul Rate  
-  - Break Clear Rate (BC)  
+  - Break Clear Rate (BC)
+  - Score History
+  - Score Analytics
+  - Live Score Sharing ON & OFF Toggle
 
 ### 💾 Persistent Scoring
 - All data stored in **localStorage**:
@@ -58,12 +59,12 @@ Built with **Tailwind CSS**, **HTML**, and **vanilla JavaScript** — no build t
 
 ### 📡 Live Score Sharing (Firebase)
 - **Start/stop Live Score Sharing** from the controls  
-- Generates a unique link (`live.html#<gameId>`) to share with others  
-- Viewers see:
-  - Real-time scores  
+- Populates scores of current game session to `live.html` to share with others  
+- Viewers can see the following at `live.html` page:
+  - Real-time scores of all guard sessions happening
   - Player names  
   - Analytics (fouls, wins, golden breaks, break clears)  
-  - **Ongoing timer** showing how long the game has been live  
+  - Ongoing timer showing how long the game has been live  
 
 ### 📲 Social Sharing
 - **Share to Facebook**: Generate a screenshot of the scoreboard and share it with friends  
