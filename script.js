@@ -647,8 +647,8 @@
     btn.classList.remove("bg-emerald-600");
     btn.classList.add("bg-red-600");
 
-    const liveUrl = `https://kaimingchua.github.io/guard-scoreboard/live.html#${live.gameId}`;
-    alert(`Live sharing started.\nShare this link with viewers:\n${liveUrl}`);
+    const liveUrl = `https://kaimingchua.github.io/guard-scoreboard/live.html`;
+    alert(`Live sharing started.\nShare this link with viewers to view scores of ongoing matches happening live!:\n${liveUrl}`);
 
     // push first state
     debouncedSyncLive();
