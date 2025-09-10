@@ -615,7 +615,6 @@
       document.getElementById("liveToggle").classList.add("bg-emerald-600");
       alert("Live sharing stopped.");
     } else {
-      // start
       await startLiveGame();
     }
   };
@@ -629,7 +628,6 @@
     initial.createdAt = fns.serverTimestamp();
     initial.updatedAt = fns.serverTimestamp();
 
-    // Optional: reuse previous game id from this browser if still live
     const existingId = localStorage.getItem(LIVE_STORAGE_KEY);
     if (existingId) {
       const ref = fns.doc(db, "games", existingId);
@@ -641,7 +639,7 @@
       localStorage.setItem(LIVE_STORAGE_KEY, ref.id);
     }
 
-    // update UI + give link
+    // update UI + share link
     const btn = document.getElementById("liveToggle");
     btn.textContent = "Live score sharing: ON";
     btn.classList.remove("bg-emerald-600");
@@ -654,7 +652,6 @@
     debouncedSyncLive();
   }
 
-  /** Build the document body we store */
   function buildLivePayload() {
     const playerIds = Object.keys(scores).map(n => Number(n));
     const players = {};
@@ -686,16 +683,14 @@
         } catch (e) {
           console.warn("live sync failed", e);
         }
-      }, 200); // near-real-time without hammering writes
+      }, 200);
     };
   })();
 
-  /** Call this whenever scoreboard data changes */
+  /** Calls whenever scoreboard data changes */
   function onStateChanged() {
     debouncedSyncLive();
   }
-
-  /* Hook into your existing mutations: call onStateChanged() */
 
   // After updateAllScores() runs:
   const __orig_updateAllScores = updateAllScores;
