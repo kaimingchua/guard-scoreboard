@@ -81,6 +81,7 @@
         <button onclick="showHistory()" class="bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded">History</button>
         <button onclick="showAnalytics()" class="bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded">Score Analytics</button>
         <button onclick="shareScoreboardToFacebook()" class="bg-blue-600 text-white px-3 py-1 rounded">Share to Facebook</button>
+        <button id="liveToggle" class="bg-emerald-600 text-white px-3 py-1 rounded" onclick="toggleLiveSharing()">Live score sharing: OFF</button>
       </div>    
       <div class="flex flex-wrap items-center gap-4">
         <label class="font-bold">Win:
@@ -164,7 +165,30 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>  
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import {
+      getFirestore, collection, doc, addDoc, setDoc, updateDoc,
+      serverTimestamp, onSnapshot, query, orderBy
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  
+    const firebaseConfig = {
+      apiKey: "AIzaSyC_jSYoQLlsYvyMkE4fZ4bHFz2fkE70shk",
+      authDomain: "guard-scoreboard.firebaseapp.com",
+      projectId: "guard-scoreboard",
+      storageBucket: "guard-scoreboard.firebasestorage.app",
+      messagingSenderId: "491028228431",
+      appId: "1:491028228431:web:4c92700d264f5b1aae3d3a",
+      measurementId: "G-5Z28C6N29L"
+    };
+  
+    const app = initializeApp(firebaseConfig);
+    const db  = getFirestore(app);
+  
+    // Expose a tiny SDK for your non-module script.js
+    window.__live = { db, fns: { collection, doc, addDoc, setDoc, updateDoc, serverTimestamp, onSnapshot, query, orderBy } };
+  </script>  
   <script src="script.js"></script>
   <script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js"></script>
 </body>

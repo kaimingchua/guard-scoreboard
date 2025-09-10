@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Live Games Happening Now!</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-stone-50 text-stone-900">
+  <div class="max-w-5xl mx-auto p-4">
+    <h1 class="text-2xl font-extrabold mb-4">Live Games Happening Now!</h1>
+    <div id="games" class="grid gap-4 md:grid-cols-2"></div>
+    <p id="empty" class="text-sm text-stone-500 hidden">
+      No live games yet. Ask someone to turn on “Live score sharing”.
+    </p>
+
+    <h2 class="text-xl font-bold mt-10 mb-4">Past Games</h2>
+    <div id="past-games" class="grid gap-4 md:grid-cols-2"></div>
+    <p id="emptyPast" class="text-sm text-stone-500 hidden">
+      No past games yet.
+    </p>
+  </div>
+
+  <!-- Firebase (module) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+    import {
+      getFirestore, collection, onSnapshot, query, orderBy
+    } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyC_jSYoQLlsYvyMkE4fZ4bHFz2fkE70shk",
+      authDomain: "guard-scoreboard.firebaseapp.com",
+      projectId: "guard-scoreboard",
+      storageBucket: "guard-scoreboard.appspot.com",
+      messagingSenderId: "491028228431",
+      appId: "1:491028228431:web:4c92700d264f5b1aae3d3a",
+      measurementId: "G-5Z28C6N29L"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db  = getFirestore(app);
+
+    const $ = sel => document.querySelector(sel);
+    const gamesWrap = $("#games");
+    const emptyMsg  = $("#empty");
+    const pastWrap  = $("#past-games");
+    const emptyPast = $("#emptyPast");
+
+    const onlyId = location.hash?.replace("#","") || null;
+    const timers = {};
+
+    // Subscribe to games
+    const q = query(collection(db, "games"), orderBy("updatedAt", "desc"));
+    onSnapshot(q, (snap) => {
+      const liveDocs = [];
+      const pastDocs = [];
+      snap.forEach(d => {
+        const data = d.data();
+        if (!data) return;
+        if (data.status === "live" && (!onlyId || onlyId === d.id)) {
+          liveDocs.push({ id: d.id, ...data });
+        } else if (data.status === "ended" && (!onlyId || onlyId === d.id)) {
+          pastDocs.push({ id: d.id, ...data });
+        }
+      });
+      renderLive(liveDocs);
+      renderPast(pastDocs);
+    });
+
+    /* ------------ Live Games ------------ */
+    function renderLive(items) {
+      gamesWrap.innerHTML = "";
+      if (!items.length) {
+        emptyMsg.classList.remove("hidden");
+        return;
+      }
+      emptyMsg.classList.add("hidden");
+
+      for (const g of items) {
+        gamesWrap.insertAdjacentHTML("beforeend", gameCardHTML(g, true));
+
+        // Fill scores
+        document.getElementById(`scores-${g.id}`).textContent = formatScores(g.players, g.scores);
+
+        // Bars
+        renderBars(`foul-${g.id}`, g.players, g.actionStats?.foul || {});
+        renderBars(`win-${g.id}`, g.players, g.actionStats?.win || {});
+        renderBars(`golden-${g.id}`, g.players, g.actionStats?.golden || {});
+        renderBars(`bc-${g.id}`, g.players, g.actionStats?.bc || {});
+
+        // Timer
+        if (g.createdAt?.seconds) {
+          const createdAt = g.createdAt.seconds * 1000;
+          timers[g.id] && clearInterval(timers[g.id]);
+          timers[g.id] = setInterval(() => {
+            const diff = Date.now() - createdAt;
+            const mins = Math.floor(diff / 60000);
+            const secs = Math.floor((diff % 60000) / 1000);
+            const timerEl = document.getElementById(`timer-${g.id}`);
+            if (timerEl) timerEl.textContent = `Ongoing: ${mins}m ${secs}s`;
+          }, 1000);
+        }
+      }
+    }
+
+    /* ------------ Past Games ------------ */
+    function renderPast(items) {
+      pastWrap.innerHTML = "";
+      if (!items.length) {
+        emptyPast.classList.remove("hidden");
+        return;
+      }
+      emptyPast.classList.add("hidden");
+
+      for (const g of items) {
+        pastWrap.insertAdjacentHTML("beforeend", gameCardHTML(g, false));
+
+        document.getElementById(`scores-${g.id}`).textContent = formatScores(g.players, g.scores);
+
+        renderBars(`foul-${g.id}`, g.players, g.actionStats?.foul || {});
+        renderBars(`win-${g.id}`, g.players, g.actionStats?.win || {});
+        renderBars(`golden-${g.id}`, g.players, g.actionStats?.golden || {});
+        renderBars(`bc-${g.id}`, g.players, g.actionStats?.bc || {});
+      }
+    }
+
+    /* ------------ UI Helpers ------------ */
+    function gameCardHTML(g, isLive) {
+      return `
+      <div class="rounded-xl bg-white shadow p-4">
+        <div class="flex items-center justify-between mb-1">
+          <div class="font-bold">${g.title || "Guard Scoreboard"}</div>
+          <div class="text-xs text-stone-500">#${g.id.slice(-6)}</div>
+        </div>
+        ${isLive ? `<div id="timer-${g.id}" class="text-xs text-emerald-600 mb-2"></div>` : `<div class="text-xs text-stone-500 mb-2">Ended</div>`}
+        <div class="text-lg font-extrabold tabular-nums mb-2" id="scores-${g.id}"></div>
+
+        <div class="grid gap-2">
+          ${barRow("Total Fouls", `foul-${g.id}`)}
+          ${barRow("Total Wins", `win-${g.id}`)}
+          ${barRow("Golden Breaks", `golden-${g.id}`)}
+          ${barRow("Break Clears", `bc-${g.id}`)}
+        </div>
+      </div>`;
+    }
+
+    function barRow(title, id) {
+      return `
+        <div>
+          <div class="text-xs font-semibold mb-1">${title}</div>
+          <div id="${id}" class="flex gap-2"></div>
+        </div>`;
+    }
+
+    function formatScores(players, scores) {
+      const ids = Object.keys(players).map(n => Number(n)).sort((a,b)=>a-b);
+      return ids.map(id => `${players[id]}: ${scores?.[id] ?? 0}`).join(" • ");
+    }
+
+    function renderBars(containerId, players, counts) {
+      const wrap = document.getElementById(containerId);
+      if (!wrap) return;
+      wrap.innerHTML = "";
+
+      const ids = Object.keys(players).map(n => Number(n)).sort((a,b)=>a-b);
+      const max = Math.max(1, ...ids.map(id => (counts[id] || 0)));
+
+      for (const id of ids) {
+        const v = counts[id] || 0;
+        const pct = Math.round((v / max) * 100);
+        wrap.insertAdjacentHTML("beforeend", `
+          <div class="flex-1">
+            <div class="h-3 rounded bg-stone-100 overflow-hidden">
+              <div class="h-3" style="width:${pct}%; background:#3b82f6"></div>
+            </div>
+            <div class="text-[10px] text-center mt-1">${players[id]} (${v})</div>
+          </div>
+        `);
+      }
+    }
+  </script>
+</body>
+</html>

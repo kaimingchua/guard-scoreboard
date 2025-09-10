@@ -41,6 +41,10 @@
     return `${h}:${m}${ampm}`;
   };
 
+  /* ===== Live sharing (Firestore) ===== */
+  const live = { enabled: false, gameId: null, ref: null };
+  const LIVE_STORAGE_KEY = "guard.liveGameId";  
+
   // ---------- Core logic ----------
   function logState(text) {
     historyLog.push({ text, time: new Date().toISOString() });
@@ -587,6 +591,139 @@
       version    : 'v19.0'
     });
   };
+
+
+  /** Start/stop from the button */
+  window.toggleLiveSharing = async function toggleLiveSharing() {
+    if (!window.__live?.db) {
+      alert("Live sharing not available (Firebase not initialized).");
+      return;
+    }
+    if (live.enabled) {
+      // stop
+      try {
+        if (live.ref) {
+          await window.__live.fns.updateDoc(live.ref, { status: "ended", updatedAt: window.__live.fns.serverTimestamp() });
+        }
+      } catch {}
+      live.enabled = false;
+      live.ref = null;
+      live.gameId = null;
+      localStorage.removeItem(LIVE_STORAGE_KEY);
+      document.getElementById("liveToggle").textContent = "Live score sharing: OFF";
+      document.getElementById("liveToggle").classList.remove("bg-red-600");
+      document.getElementById("liveToggle").classList.add("bg-emerald-600");
+      alert("Live sharing stopped.");
+    } else {
+      // start
+      await startLiveGame();
+    }
+  };
+
+  async function startLiveGame() {
+    const { db, fns } = window.__live;
+    // create a new game doc
+    const gamesCol = fns.collection(db, "games");
+    const initial = buildLivePayload();
+    initial.status = "live";
+    initial.createdAt = fns.serverTimestamp();
+    initial.updatedAt = fns.serverTimestamp();
+
+    // Optional: reuse previous game id from this browser if still live
+    const existingId = localStorage.getItem(LIVE_STORAGE_KEY);
+    if (existingId) {
+      const ref = fns.doc(db, "games", existingId);
+      live.ref = ref; live.gameId = existingId; live.enabled = true;
+      await fns.setDoc(ref, initial, { merge: true });
+    } else {
+      const ref = await fns.addDoc(gamesCol, initial);
+      live.ref = ref; live.gameId = ref.id; live.enabled = true;
+      localStorage.setItem(LIVE_STORAGE_KEY, ref.id);
+    }
+
+    // update UI + give link
+    const btn = document.getElementById("liveToggle");
+    btn.textContent = "Live score sharing: ON";
+    btn.classList.remove("bg-emerald-600");
+    btn.classList.add("bg-red-600");
+
+    const liveUrl = `https://kaimingchua.github.io/guard-scoreboard/live.html#${live.gameId}`;
+    alert(`Live sharing started.\nShare this link with viewers:\n${liveUrl}`);
+
+    // push first state
+    debouncedSyncLive();
+  }
+
+  /** Build the document body we store */
+  function buildLivePayload() {
+    const playerIds = Object.keys(scores).map(n => Number(n));
+    const players = {};
+    playerIds.forEach(pid => { players[pid] = getPlayerName(pid); });
+
+    return {
+      title: "Guard Scoreboard",
+      players,
+      isFourPlayers,
+      scores,
+      actionStats,
+      order,
+    };
+  }
+
+  /** Debounced sync to reduce write spam */
+  const debouncedSyncLive = (() => {
+    let t;
+    return function () {
+      if (!live.enabled || !live.ref) return;
+      clearTimeout(t);
+      t = setTimeout(async () => {
+        try {
+          const { fns } = window.__live;
+          await fns.updateDoc(live.ref, {
+            ...buildLivePayload(),
+            updatedAt: fns.serverTimestamp(),
+          });
+        } catch (e) {
+          console.warn("live sync failed", e);
+        }
+      }, 200); // near-real-time without hammering writes
+    };
+  })();
+
+  /** Call this whenever scoreboard data changes */
+  function onStateChanged() {
+    debouncedSyncLive();
+  }
+
+  /* Hook into your existing mutations: call onStateChanged() */
+
+  // After updateAllScores() runs:
+  const __orig_updateAllScores = updateAllScores;
+  updateAllScores = function wrappedUpdateAllScores(prev) {
+    __orig_updateAllScores(prev);
+    onStateChanged();
+  };
+
+  // When names change:
+  document.addEventListener("input", (e) => {
+    if (e.target && e.target.id && e.target.id.startsWith("name-")) {
+      onStateChanged();
+    }
+  });
+
+  // When player mode toggles:
+  const __orig_togglePlayerMode = window.togglePlayerMode;
+  window.togglePlayerMode = function () {
+    __orig_togglePlayerMode();
+    onStateChanged();
+  };
+
+  // When clearing game:
+  const __orig_clearGameData = window.clearGameData;
+  window.clearGameData = function () {
+    __orig_clearGameData();
+    onStateChanged();
+  };  
     
   window.showHelp    = () => { $("#helpPopup").classList.remove("hidden"); requestAnimationFrame(() => $("#helpPopup").classList.add("opacity-100")); };
   window.hideHelp    = () => { $("#helpPopup").classList.add("hidden"); $("#helpPopup").classList.remove("opacity-100"); };
