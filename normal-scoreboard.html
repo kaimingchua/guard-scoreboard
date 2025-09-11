@@ -5,6 +5,20 @@
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Normal Team Scoreboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .foul-float {
+      position: absolute;
+      font-size: 1.2rem;
+      font-weight: bold;
+      opacity: 1;
+      animation: floatUp 1s ease-out forwards;
+      pointer-events: none;
+    }
+    @keyframes floatUp {
+      0%   { transform: translateY(0); opacity: 1; }
+      100% { transform: translateY(-30px); opacity: 0; }
+    }
+  </style>
 </head>
 <body class="bg-stone-50 text-stone-900 min-h-screen">
 
