@@ -148,15 +148,27 @@
         save();
         onStateChanged();
         addLogLine(historyLog[historyLog.length - 1]);
-        // Optional small yellow flash to indicate event occurred
-        const card = $(`#card-${player}`);
-        if (card) {
-          card.style.transition = "box-shadow 400ms ease";
-          const prev = card.style.boxShadow;
-          card.style.boxShadow = "0 0 0 3px rgba(234,179,8,0.6)"; // amber-400 ring-like glow
-          setTimeout(() => (card.style.boxShadow = prev), 400);
+      
+        // Floating +1 animation
+        const btn = document.querySelector(`#card-${player} [data-action='foul']`);
+        if (btn) {
+          const float = document.createElement("div");
+          float.textContent = "+1";
+          float.className = "foul-float";
+          float.style.color = "#ca8a04";
+          float.style.left = "50%";
+          float.style.top = "0";
+          float.style.transform = "translateX(-50%)";
+          float.style.position = "absolute";
+      
+          // Position inside the button itself
+          btn.style.position = "relative";
+          btn.appendChild(float);
+      
+          setTimeout(() => float.remove(), 1000);
         }
       }
+      
     }
   
     // ---------- Live sharing to Firestore ----------
