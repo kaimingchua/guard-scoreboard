@@ -3,7 +3,7 @@ name: Deploy Test Scoreboard
 on:
   push:
     branches:
-      - main   # or your default branch
+      - main
     paths:
       - 'test/**'
 
