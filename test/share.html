@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Guard Scoreboard Share</title>
+
+  <!-- Open Graph meta tags -->
+  <meta property="og:title" content="Guard Scoreboard" />
+  <meta property="og:description" content="Check out my score on Guard Scoreboard!" />
+  <meta property="og:image" content="" id="og-image" />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="" id="og-url" />
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+      background: #faf3e0;
+      color: #333;
+    }
+    img {
+      max-width: 100%;
+      border: 3px solid #444;
+      border-radius: 8px;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎱 Guard Scoreboard</h1>
+  <p>Check out my score on Guard Scoreboard!</p>
+  <img id="scoreImage" src="" alt="Scoreboard Screenshot" />
+
+  <script>
+    // Parse query parameter
+    const params = new URLSearchParams(window.location.search);
+    const imgUrl = params.get("img");
+
+    if (imgUrl) {
+      // Update visible screenshot
+      document.getElementById("scoreImage").src = imgUrl;
+
+      // Update Open Graph meta tags
+      document.getElementById("og-image").setAttribute("content", imgUrl);
+      document.getElementById("og-url").setAttribute("content", window.location.href);
+    }
+  </script>
+</body>
+</html>
