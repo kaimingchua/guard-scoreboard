@@ -15,10 +15,10 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v3
 
-      - name: Generate Firebase config.js
+      - name: Generate Firebase config.js (root + /test)
         run: |
-          mkdir -p ./test
-          cat > ./test/config.js <<EOF
+          # root
+          cat > ./config.js <<'EOF'
           window.__FIREBASE_CONFIG__ = {
             apiKey: "${{ secrets.FIREBASE_API_KEY }}",
             authDomain: "${{ secrets.FIREBASE_AUTH_DOMAIN }}",
@@ -29,6 +29,18 @@ jobs:
             measurementId: "${{ secrets.FIREBASE_MEASUREMENT_ID }}"
           };
           EOF
+      
+          # /test
+          mkdir -p ./test
+          cp ./config.js ./test/config.js
+      
+      - name: Show generated config.js for debugging
+        run: |
+          echo "---- /config.js ----"
+          cat ./config.js
+          echo "---- /test/config.js ----"
+          cat ./test/config.js
+
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
