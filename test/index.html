@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en" class="">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Guard Scoreboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { darkMode: 'class' }
+  </script>
+  <style>
+  .analytics-canvas {
+    max-height: 320px;
+  }
+  #controlsPanel { will-change: max-height; }
+  @media (prefers-reduced-motion: reduce) {
+    #controlsPanel { transition: none !important; }
+  }
+  html:not(.dark) body {
+    background: #faf3e0;
+    color: #000 !important;
+  }
+  html:not(.dark) body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background: linear-gradient(270deg,
+      #faf3e0,
+      #f5e6c8,
+      #fff8e7,
+      #f8ecda,
+      #faf3e0
+    );
+    background-size: 800% 800%;
+    animation: riceShift 25s ease-in-out infinite;
+  }
+  @keyframes riceShift {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html:not(.dark) body::before { animation: none; }
+  }
+  html:not(.dark) body,
+  html:not(.dark) body * {
+    color: inherit;
+  }
+
+  .score-text {
+    line-height: 1.1 !important;
+    display: block;
+    text-align: center;
+    height: auto;
+    overflow: visible;
+    margin-bottom: 0.5em;
+  }
+  </style>
+</head>
+<body class="transition-colors duration-300 dark:from-gray-900 dark:to-black min-h-screen font-semibold text-black dark:text-white">
+
+  <!-- Header -->
+  <div class="fixed top-0 left-0 w-full px-4 py-2 flex items-center justify-between bg-black/30 backdrop-blur z-50">
+    <span class="text-white font-extrabold text-xl tracking-wide">Guard!</span>
+    <button id="controlsToggle"
+      class="bg-white dark:bg-gray-700 px-3 py-1 rounded transition-colors"
+      aria-expanded="false" aria-controls="controlsPanel">
+      Controls ▾
+    </button>
+  </div>
+
+  <!-- Controls Panel -->
+  <div id="controlsPanel"
+    class="fixed left-0 right-0 top-[44px] mx-auto bg-white/95 dark:bg-gray-900/95 shadow-lg border-t border-gray-200 dark:border-gray-800 overflow-hidden max-h-0 transition-[max-height] duration-500 ease-in-out z-40">
+    <div class="px-4 py-3 grid gap-4 sm:grid-cols-3 text-black dark:text-white">
+      <div class="flex flex-wrap gap-2">
+        <button onclick="showHelp()" class="bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded">Help</button>
+        <button onclick="clearGameData()" class="bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded">Clear</button>
+        <button onclick="showHistory()" class="bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded">History</button>
+        <button onclick="showAnalytics()" class="bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded">Score Analytics</button>
+        <button onclick="shareScoreboardToFacebook()" class="bg-blue-600 text-white px-3 py-1 rounded">Share to Facebook</button>
+        <button id="liveToggle" class="bg-emerald-600 text-white px-3 py-1 rounded" onclick="toggleLiveSharing()">Live score sharing: OFF</button>
+      </div>    
+      <div class="flex flex-wrap items-center gap-4">
+        <label class="font-bold">Win:
+          <input type="number" id="winRate" value="3" class="w-16 px-2 py-1 text-black rounded" />
+        </label>
+        <label class="font-bold">Foul:
+          <input type="number" id="foulRate" value="1" class="w-16 px-2 py-1 text-black rounded" />
+        </label>
+        <label class="font-bold">BC:
+          <input type="number" id="bcRate" value="5" class="w-16 px-2 py-1 text-black rounded" />
+        </label>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <button id="togglePlayerCount" onclick="togglePlayerMode()" class="bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded">
+          3 Players Mode
+        </button>
+        <button onclick="toggleDarkMode()" id="darkToggle" class="bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded">
+          🌙
+        </button>
+        <input type="hidden" id="playerCount" value="4" />
+      </div>
+    </div>
+  </div>
+
+  <!-- Turn Order -->
+  <div id="turnOrderDisplay" class="mt-24 sm:mt-28 mb-2 text-center text-lg font-bold text-white transition-colors">
+    Turn: -
+  </div>
+
+  <!-- Players -->
+  <div id="playerContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-4 px-4 pb-28"></div>
+
+  <!-- Help Popup -->
+  <div id="helpPopup" class="fixed inset-0 bg-black bg-opacity-50 hidden fade z-50 flex items-center justify-center">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg w-11/12 max-w-lg p-4 max-h-[80vh] overflow-y-auto relative text-black dark:text-white transition-colors">
+      <button onclick="hideHelp()" class="absolute top-2 right-3 text-xl font-bold">&times;</button>
+      <h2 class="text-lg font-bold mb-3">🎱 How to Use the Scoreboard</h2>
+      <ul class="list-disc pl-6 space-y-2 text-sm">
+        <li><strong>WIN:</strong> Adds WIN rate to the shooter and subtracts same from previous player.</li>
+        <li><strong>FOUL+:</strong> Subtracts FOUL rate from shooter and adds to previous player.</li>
+        <li><strong>BC:</strong> Subtracts BC from each opponent and adds to shooter.</li>
+        <li><strong>GOLDEN:</strong> Subtracts WIN from each opponent and adds to shooter.</li>
+        <li><strong>UNDO:</strong> Open History and tap Undo Last Action (or press <kbd>z</kbd>).</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- History Popup -->
+  <div id="historyPopup" class="fixed inset-0 bg-black bg-opacity-50 hidden fade z-50 flex items-center justify-center">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg w-11/12 max-w-lg p-4 max-h-[80vh] overflow-y-auto relative">
+      <button onclick="hideHistory()" class="absolute top-2 right-3 text-xl font-bold">&times;</button>
+      <h2 class="text-lg font-bold mb-3">📜 Score History</h2>
+      <ul id="logList" class="text-sm space-y-2 text-black dark:text-white"></ul>
+    </div>
+  </div>  
+
+  <!-- Analytics Popup -->
+  <div id="analyticsPopup" class="fixed inset-0 bg-black bg-opacity-50 hidden fade z-50 flex items-center justify-center">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg w-11/12 max-w-3xl p-4 relative text-black dark:text-white">
+      <button onclick="hideAnalytics()" class="absolute top-2 right-3 text-xl font-bold">&times;</button>
+      <h2 class="text-lg font-bold mb-3">📊 Score Analytics</h2>
+
+      <!-- Tabs -->
+      <div class="flex gap-2 mb-4 border-b border-gray-300 dark:border-gray-700">
+        <button class="analytics-tab px-3 py-1 rounded-t bg-gray-200 dark:bg-gray-700" data-target="scoreChart">Scores</button>
+        <button class="analytics-tab px-3 py-1 rounded-t" data-target="foulChart">Total Fouls</button>
+        <button class="analytics-tab px-3 py-1 rounded-t" data-target="winChart">Total Wins</button>
+        <button class="analytics-tab px-3 py-1 rounded-t" data-target="goldenChart">Golden Breaks</button>
+        <button class="analytics-tab px-3 py-1 rounded-t" data-target="bcChart">Break Clears</button>
+      </div>
+
+      <!-- Canvases -->
+      <div class="relative w-full h-80">
+        <canvas id="scoreChart" class="analytics-canvas w-full h-full"></canvas>
+        <canvas id="foulChart" class="analytics-canvas w-full h-full hidden"></canvas>
+        <canvas id="winChart" class="analytics-canvas w-full h-full hidden"></canvas>
+        <canvas id="goldenChart" class="analytics-canvas w-full h-full hidden"></canvas>
+        <canvas id="bcChart" class="analytics-canvas w-full h-full hidden"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="config.js"></script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import {
+      getFirestore, collection, doc, addDoc, setDoc, updateDoc,
+      serverTimestamp, onSnapshot, query, orderBy
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  
+    const firebaseConfig = window.__FIREBASE_CONFIG__;
+    const app = initializeApp(firebaseConfig);
+    const db  = getFirestore(app);
+  
+    // Expose a tiny SDK for your non-module script.js
+    window.__live = { db, fns: { collection, doc, addDoc, setDoc, updateDoc, serverTimestamp, onSnapshot, query, orderBy } };
+  </script>  
+  <script src="script.js"></script>
+  <script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js"></script>
+</body>
+</html>

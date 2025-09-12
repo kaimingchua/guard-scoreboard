@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Normal Live Games</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-stone-50 text-stone-900">
+  <div class="max-w-5xl mx-auto p-4">
+    <h1 class="text-2xl font-extrabold mb-4">Normal Live Games</h1>
+
+    <!-- Overall Team Score -->
+    <div id="overallScore" class="mb-6 text-xl font-bold text-center text-blue-700">
+      Overall Team Score: -
+    </div>
+
+    <!-- Ongoing Games -->
+    <h2 class="text-lg font-bold mb-2">Ongoing Matches</h2>
+    <div id="games" class="grid gap-4 md:grid-cols-2"></div>
+    <p id="empty" class="text-sm text-stone-500 hidden">No live games yet. Ask someone to turn on “Live score sharing”.</p>
+
+    <!-- Past Matches -->
+    <h2 class="text-lg font-bold mt-8 mb-2">Past Matches</h2>
+    <div id="pastGames" class="grid gap-4 md:grid-cols-2"></div>
+    <p id="pastEmpty" class="text-sm text-stone-500 hidden">No past matches yet.</p>
+  </div>
+
+  <!-- Firebase (module) -->
+  <script src="config.js"></script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import {
+      getFirestore, collection, onSnapshot, query, orderBy
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    
+    const firebaseConfig = window.__FIREBASE_CONFIG__;
+    const app = initializeApp(firebaseConfig);
+    const db  = getFirestore(app);
+
+    // UI refs
+    const gamesWrap = document.getElementById("games");
+    const pastWrap  = document.getElementById("pastGames");
+    const emptyMsg  = document.getElementById("empty");
+    const pastEmpty = document.getElementById("pastEmpty");
+    const overallEl = document.getElementById("overallScore");
+
+    // Subscribe to ongoing + past games
+    const q = query(collection(db, "normal-games"), orderBy("updatedAt", "desc"));
+    onSnapshot(q, (snap) => {
+      const liveGames = [];
+      const pastGames = [];
+      snap.forEach(d => {
+        const data = d.data();
+        if (data?.status === "live") {
+          liveGames.push({ id: d.id, ...data });
+        } else if (data?.status === "ended") {
+          pastGames.push({ id: d.id, ...data });
+        }
+      });
+      render(liveGames, pastGames);
+    });
+
+    function render(liveGames, pastGames) {
+      // Clear UI
+      gamesWrap.innerHTML = "";
+      pastWrap.innerHTML = "";
+
+      // Handle empty messages
+      emptyMsg.classList.toggle("hidden", liveGames.length > 0);
+      pastEmpty.classList.toggle("hidden", pastGames.length > 0);
+
+      // Reset overall team scores
+      const teamScores = {};
+
+      // Render live games
+      for (const g of liveGames) {
+        gamesWrap.insertAdjacentHTML("beforeend", gameCardHTML(g, false));
+        document.getElementById(`scores-${g.id}`).textContent = formatScores(g);  
+      }
+
+      // Render past games
+      for (const g of pastGames) {
+        pastWrap.insertAdjacentHTML("beforeend", gameCardHTML(g, true));
+        document.getElementById(`scores-${g.id}`).textContent = formatScores(g);
+       
+        tallyOverall(teamScores, g);
+      }
+
+      // Display overall score
+      //updateOverallDisplay(teamScores);
+      updateOverallDisplay([...liveGames, ...pastGames], teamScores);
+    }
+
+    function tallyOverall(teamScores, g) {
+      const s1 = g.scores?.[1] ?? 0;
+      const s2 = g.scores?.[2] ?? 0;
+      const t1 = g.teams?.[1] ?? "Team 1";
+      const t2 = g.teams?.[2] ?? "Team 2";
+
+      if (s1 > s2) teamScores[t1] = (teamScores[t1] || 0) + 1;
+      else if (s2 > s1) teamScores[t2] = (teamScores[t2] || 0) + 1;
+    }
+
+    function updateOverallDisplay(allGames, teamScores) {
+        const overallEl = document.getElementById("overallScore");
+
+        if (!allGames.length) {
+            overallEl.textContent = "Overall Team Score: waiting for matches…";
+            return;
+        }
+
+        // Get team names from the most recent game
+        const latest = allGames[0];
+        const t1 = latest.teams?.[1] || "Team 1";
+        const t2 = latest.teams?.[2] || "Team 2";
+
+        // Use tally from ended games only
+        const s1 = teamScores[t1] || 0;
+        const s2 = teamScores[t2] || 0;
+
+        overallEl.innerHTML = `
+            <div class="flex justify-center items-center gap-6 text-lg font-extrabold tabular-nums text-black">
+            <span class="w-40 text-right">${t1}</span>
+            <span class="w-8 text-center">${s1}</span>
+            <span class="mx-2">:</span>
+            <span class="w-8 text-center">${s2}</span>
+            <span class="w-40 text-left">${t2}</span>
+            </div>
+        `;
+    }
+
+    function gameCardHTML(g, isPast) {
+      const statusText = isPast ? "Final" : "Live";
+
+      // Determine winner highlight (only for past games)
+      let team1Class = "";
+      let team2Class = "";
+      if (isPast) {
+        const s1 = g.scores?.[1] ?? 0;
+        const s2 = g.scores?.[2] ?? 0;
+        if (s1 > s2) team1Class = "text-green-600 font-bold";
+        else if (s2 > s1) team2Class = "text-green-600 font-bold";
+      }
+
+      return `
+        <div class="rounded-xl bg-white shadow p-4">
+          <div class="flex items-center justify-between mb-2">
+            <div class="font-bold">${g.title || "Normal Scoreboard"} (${statusText})</div>
+            <div class="text-xs text-stone-500">#${g.id.slice(-6)}</div>
+          </div>
+          <div class="text-sm mb-1">
+            <span class="${team1Class}">${g.players?.[1] || "P1"} (${g.teams?.[1] || "Team 1"})</span> 
+            vs 
+            <span class="${team2Class}">${g.players?.[2] || "P2"} (${g.teams?.[2] || "Team 2"})</span>
+          </div>
+          <div class="text-lg font-extrabold tabular-nums" id="scores-${g.id}"></div>
+
+          <!-- Foul Analytics -->
+          <div class="mt-3">
+            <div class="text-xs font-semibold mb-1">Fouls</div>
+            <div id="foul-${g.id}" class="flex gap-1">
+              ${renderBars(g.players, g.actionStats?.foul || {})}
+            </div>
+          </div>
+        </div>`;
+    }
+
+    function formatScores(g) {
+      return `${g.players?.[1]}: ${g.scores?.[1] ?? 0} • ${g.players?.[2]}: ${g.scores?.[2] ?? 0}`;
+    }
+
+    function renderBars(players, counts) {
+      const ids = Object.keys(players).map(n => Number(n)).sort((a,b)=>a-b);
+      const max = Math.max(1, ...ids.map(id => (counts[id] || 0)));
+      return ids.map(id => {
+        const v = counts[id] || 0;
+        const pct = Math.round((v / max) * 100);
+        return `
+          <div class="flex-1 bg-stone-100 rounded overflow-hidden">
+            <div class="h-3" style="width:${pct}%; background:#ef4444"></div>
+            <div class="text-[10px] text-center mt-1">${players[id]} (${v})</div>
+          </div>`;
+      }).join("");
+    }
+  </script>
+</body>
+</html>
