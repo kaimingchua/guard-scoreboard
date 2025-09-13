@@ -6,9 +6,10 @@
   <title>Guard Live Games</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
+    /* Score number glow: black -> green -> black */
     @keyframes glowToGreen {
       0%   { color: #000000; }
-      50%  { color: #16a34a; }
+      50%  { color: #16a34a; } /* green */
       100% { color: #000000; }
     }
     .score-glow {
@@ -56,78 +57,133 @@
     const emptyMsg  = document.getElementById("empty");
     const pastEmpty = document.getElementById("pastEmpty");
 
+    /* score number animation */
     function animateScore(id) {
       const el = document.getElementById(id);
       if (!el) return;
       el.classList.remove("score-glow");
-      void el.offsetWidth; // force reflow
+      void el.offsetWidth; // reflow to restart animation
       el.classList.add("score-glow");
     }
 
-    const q = query(collection(db, "games"), orderBy("updatedAt", "desc"));
-    onSnapshot(q, (snap) => {
-      const liveGames = [];
-      const pastGames = [];
-      snap.forEach(d => {
-        const data = d.data();
-        if (data?.status === "live") liveGames.push({ id: d.id, ...data });
-        else if (data?.status === "ended") pastGames.push({ id: d.id, ...data });
-      });
-      render(liveGames, pastGames);
-    });
-
-    function render(liveGames, pastGames) {
-      gamesWrap.innerHTML = "";
-      pastWrap.innerHTML = "";
-
-      emptyMsg.classList.toggle("hidden", liveGames.length > 0);
-      pastEmpty.classList.toggle("hidden", pastGames.length > 0);
-
-      for (const g of liveGames) {
-        gamesWrap.insertAdjacentHTML("beforeend", gameCardHTML(g, false));
-        updateScores(g);
-      }
-
-      for (const g of pastGames) {
-        pastWrap.insertAdjacentHTML("beforeend", gameCardHTML(g, true));
-        updateScores(g);
-      }
-    }
-
-    function updateScores(g) {
-      const scores = g.scores || {};
-      const players = g.players || {};
-      const container = document.getElementById(`scores-${g.id}`);
-      if (!container) return;
-
-      let html = '<div class="flex justify-between gap-4">';
-      Object.keys(scores).forEach(pid => {
-        const name = players[pid] || `P${pid}`;
-        html += `
-          <div class="flex-1 text-center">
-            <div class="font-bold">${name}</div>
-            <div id="score-${g.id}-${pid}" class="text-xl">${scores[pid] ?? 0}</div>
+    /* Build a compact per-player bar row (e.g., Fouls / Wins / Golden / BC) */
+    function barsHTML(players = {}, counts = {}, color = "#3b82f6") {
+      const ids = Object.keys(players).map(n => Number(n)).sort((a,b)=>a-b);
+      const max = Math.max(1, ...ids.map(id => (counts[id] || 0)));
+      return ids.map(id => {
+        const v = counts[id] || 0;
+        const pct = Math.round((v / max) * 100);
+        const label = players[id] || `P${id}`;
+        return `
+          <div class="flex-1 bg-stone-100 rounded overflow-hidden">
+            <div class="h-3" style="width:${pct}%; background:${color};"></div>
+            <div class="text-[10px] text-center mt-1">${label} (${v})</div>
           </div>
         `;
-      });
-      html += '</div>';
-      container.innerHTML = html;
-
-      Object.keys(scores).forEach(pid => {
-        animateScore(`score-${g.id}-${pid}`);
-      });
+      }).join("");
     }
 
+    /* One game card HTML (includes 4 analytics rows for that game) */
     function gameCardHTML(g, isPast) {
       const statusText = isPast ? "Final" : "Live";
+
+      const foulsHTML  = barsHTML(g.players, g.actionStats?.foul   || {}, "#ef4444"); // red
+      const winsHTML   = barsHTML(g.players, g.actionStats?.win    || {}, "#22c55e"); // green
+      const goldenHTML = barsHTML(g.players, g.actionStats?.golden || {}, "#6366f1"); // indigo
+      const bcHTML     = barsHTML(g.players, g.actionStats?.bc     || {}, "#facc15"); // yellow
+
       return `
         <div class="rounded-xl bg-white shadow p-4">
           <div class="flex items-center justify-between mb-2">
             <div class="font-bold">${g.title || "Guard Scoreboard"} (${statusText})</div>
             <div class="text-xs text-stone-500">#${g.id.slice(-6)}</div>
           </div>
+
+          <!-- Player scores go here -->
           <div class="text-lg font-extrabold tabular-nums" id="scores-${g.id}"></div>
+
+          <!-- Per-game analytics (this game only) -->
+          <div class="mt-3 grid gap-3">
+            <div>
+              <div class="text-xs font-semibold mb-1">Fouls</div>
+              <div class="flex gap-1">${foulsHTML}</div>
+            </div>
+            <div>
+              <div class="text-xs font-semibold mb-1">Wins</div>
+              <div class="flex gap-1">${winsHTML}</div>
+            </div>
+            <div>
+              <div class="text-xs font-semibold mb-1">Golden Breaks</div>
+              <div class="flex gap-1">${goldenHTML}</div>
+            </div>
+            <div>
+              <div class="text-xs font-semibold mb-1">Break Clears</div>
+              <div class="flex gap-1">${bcHTML}</div>
+            </div>
+          </div>
         </div>`;
+    }
+
+    /* Fill the per-player score block with a tidy layout */
+    function updateScores(g) {
+      const scores  = g.scores  || {};
+      const players = g.players || {};
+      const container = document.getElementById(`scores-${g.id}`);
+      if (!container) return;
+
+      // Use sorted numeric player ids for stable ordering
+      const ids = Object.keys(players).map(n => Number(n)).sort((a,b)=>a-b);
+
+      let html = '<div class="flex justify-between gap-4">';
+      ids.forEach(pid => {
+        const name = players[pid] || `P${pid}`;
+        const sc   = scores[pid] ?? 0;
+        html += `
+          <div class="flex-1 text-center">
+            <div class="font-bold">${name}</div>
+            <div id="score-${g.id}-${pid}" class="text-xl">${sc}</div>
+          </div>
+        `;
+      });
+      html += '</div>';
+
+      container.innerHTML = html;
+
+      // Trigger number glow for each player on render/update
+      ids.forEach(pid => animateScore(`score-${g.id}-${pid}`));
+    }
+
+    /* Subscribe and render */
+    const q = query(collection(db, "games"), orderBy("updatedAt", "desc"));
+    onSnapshot(q, (snap) => {
+      const liveGames = [];
+      const pastGames = [];
+      snap.forEach(d => {
+        const data = d.data();
+        if (data?.status === "live")  liveGames.push({ id: d.id, ...data });
+        if (data?.status === "ended") pastGames.push({ id: d.id, ...data });
+      });
+      render(liveGames, pastGames);
+    });
+
+    function render(liveGames, pastGames) {
+      gamesWrap.innerHTML = "";
+      pastWrap.innerHTML  = "";
+
+      emptyMsg.classList.toggle("hidden", liveGames.length > 0);
+      pastEmpty.classList.toggle("hidden", pastGames.length > 0);
+
+      // Ongoing
+      for (const g of liveGames) {
+        gamesWrap.insertAdjacentHTML("beforeend", gameCardHTML(g, false));
+        updateScores(g);
+      }
+
+      // Past
+      for (const g of pastGames) {
+        pastWrap.insertAdjacentHTML("beforeend", gameCardHTML(g, true));
+        updateScores(g);
+      }
     }
   </script>
 </body>
