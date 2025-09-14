@@ -12,7 +12,7 @@
       100% { color: #000000; }
     }
     .score-glow {
-      animation: glowToGreen 1.5s ease-in-out;
+      animation: glowToGreen 1.2s ease-in-out;
     }
   </style>
 </head>
@@ -39,6 +39,7 @@
       getFirestore, collection, onSnapshot, query, orderBy
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+    // --- Firebase ---
     const firebaseConfig = {
       apiKey: "AIzaSyC_jSYoQLlsYvyMkE4fZ4bHFz2fkE70shk",
       authDomain: "guard-scoreboard.firebaseapp.com",
@@ -51,82 +52,176 @@
     const app = initializeApp(firebaseConfig);
     const db  = getFirestore(app);
 
+    // --- UI refs ---
     const gamesWrap = document.getElementById("games");
     const pastWrap  = document.getElementById("pastGames");
     const emptyMsg  = document.getElementById("empty");
     const pastEmpty = document.getElementById("pastEmpty");
 
-    function animateScore(id) {
-      const el = document.getElementById(id);
-      if (!el) return;
-      el.classList.remove("score-glow");
-      void el.offsetWidth; // force reflow
-      el.classList.add("score-glow");
+    // Cache: last scores per game to avoid constant animation
+    const lastScores = new Map();     
+    const lastHashes = new Map();     
+
+    function stableStringify(obj) {
+      const seen = new WeakSet();
+      const stringify = (x) => {
+        if (x && typeof x === "object") {
+          if (seen.has(x)) return '"[Circular]"';
+          seen.add(x);
+          if (Array.isArray(x)) return "[" + x.map(stringify).join(",") + "]";
+          const keys = Object.keys(x).sort();
+          return "{" + keys.map(k => JSON.stringify(k) + ":" + stringify(x[k])).join(",") + "}";
+        }
+        return JSON.stringify(x);
+      };
+      return stringify(obj);
     }
 
+    // Subscribe
     const q = query(collection(db, "games"), orderBy("updatedAt", "desc"));
     onSnapshot(q, (snap) => {
       const liveGames = [];
       const pastGames = [];
       snap.forEach(d => {
         const data = d.data();
-        if (data?.status === "live") liveGames.push({ id: d.id, ...data });
-        else if (data?.status === "ended") pastGames.push({ id: d.id, ...data });
+        const item = { id: d.id, ...data };
+        if (data?.status === "live") liveGames.push(item);
+        else if (data?.status === "ended") pastGames.push(item);
       });
       render(liveGames, pastGames);
     });
 
     function render(liveGames, pastGames) {
-      gamesWrap.innerHTML = "";
-      pastWrap.innerHTML = "";
+      const seen = new Set();
 
-      emptyMsg.classList.toggle("hidden", liveGames.length > 0);
-      pastEmpty.classList.toggle("hidden", pastGames.length > 0);
-
+      // Render live
       for (const g of liveGames) {
-        gamesWrap.insertAdjacentHTML("beforeend", gameCardHTML(g, false));
+        const id = g.id;
+        seen.add(id);
+        let card = document.getElementById("card-" + id);
+        if (!card) {
+          gamesWrap.insertAdjacentHTML("beforeend", gameCardHTML(g, false));
+        } else {
+          const codeEl = document.getElementById("code-" + id);
+          if (codeEl) codeEl.textContent = g.joinCode ?? "----";
+          const hashEl = document.getElementById("hash-" + id);
+          if (hashEl) hashEl.textContent = "#" + id.slice(-6);
+        }
         updateScores(g);
+        updateAnalytics(g);
       }
 
+      // Remove cards that are no longer live
+      Array.from(gamesWrap.querySelectorAll("[data-card]")).forEach(el => {
+        if (!seen.has(el.dataset.card)) el.remove();
+      });
+
+      // Render past
+      pastWrap.innerHTML = "";
       for (const g of pastGames) {
         pastWrap.insertAdjacentHTML("beforeend", gameCardHTML(g, true));
         updateScores(g);
+        updateAnalytics(g);
       }
+
+      emptyMsg.classList.toggle("hidden", liveGames.length > 0);
+      pastEmpty.classList.toggle("hidden", pastGames.length > 0);
     }
 
     function updateScores(g) {
-      const scores = g.scores || {};
-      const players = g.players || {};
-      const container = document.getElementById(`scores-${g.id}`);
+      const container = document.getElementById("scores-" + g.id);
       if (!container) return;
 
+      const scores = g.scores || {};
+      const players = g.players || {};
+      const pids = Object.keys(players).map(Number).sort((a,b)=>a-b);
+
+      const hashNow = stableStringify({scores, players});
+      const prevHash = lastHashes.get(g.id);
+      if (prevHash === hashNow) return; // no change
+
       let html = '<div class="flex justify-between gap-4">';
-      Object.keys(scores).forEach(pid => {
-        const name = players[pid] || `P${pid}`;
+      for (const pid of pids) {
         html += `
           <div class="flex-1 text-center">
-            <div class="font-bold">${name}</div>
-            <div id="score-${g.id}-${pid}" class="text-xl">${scores[pid] ?? 0}</div>
+            <div class="font-bold">${players[pid] || ("P" + pid)}</div>
+            <div id="score-${g.id}-${pid}" class="text-2xl md:text-3xl">${scores[pid] ?? 0}</div>
           </div>
         `;
-      });
-      html += '</div>';
+      }
+      html += "</div>";
       container.innerHTML = html;
 
-      Object.keys(scores).forEach(pid => {
-        animateScore(`score-${g.id}-${pid}`);
-      });
+      const prev = lastScores.get(g.id) || {};
+      for (const pid of pids) {
+        const val = scores[pid] ?? 0;
+        if (prev[pid] !== val) {
+          const el = document.getElementById(`score-${g.id}-${pid}`);
+          if (el) {
+            el.classList.remove("score-glow");
+            void el.offsetWidth;
+            el.classList.add("score-glow");
+          }
+        }
+      }
+      lastScores.set(g.id, {...scores});
+      lastHashes.set(g.id, hashNow);
+    }
+
+    function updateAnalytics(g) {
+      const players = g.players || {};
+      const pids = Object.keys(players).map(Number).sort((a,b)=>a-b);
+      const stats = g.actionStats || {};
+
+      const renderRowWithBars = (label, counts, color) => {
+        const max = Math.max(1, ...pids.map(id => counts[id] || 0));
+        const bars = pids.map(pid => {
+          const v = counts[pid] || 0;
+          const pct = Math.round((v / max) * 100);
+          return `
+            <div class="flex-1 text-center">
+              <div class="text-[11px] mb-0.5">${players[pid]}</div>
+              <div class="bg-stone-100 rounded overflow-hidden h-3 mb-0.5">
+                <div class="h-3" style="width:${pct}%; background:${color}"></div>
+              </div>
+              <div class="text-[10px]">(${v})</div>
+            </div>`;
+        }).join("");
+        return `
+          <div class="mb-3">
+            <div class="font-semibold text-xs mb-1">${label}:</div>
+            <div class="flex gap-2">${bars}</div>
+          </div>`;
+      };
+
+      const wrap = document.getElementById("analytics-" + g.id);
+      if (!wrap) return;
+      wrap.innerHTML = [
+        renderRowWithBars("Fouls",        stats.foul   || {}, "#ef4444"),
+        renderRowWithBars("Wins",         stats.win    || {}, "#22c55e"),
+        renderRowWithBars("Golden Breaks",stats.golden || {}, "#6366f1"),
+        renderRowWithBars("Break Clears", stats.bc     || {}, "#facc15")
+      ].join("");
     }
 
     function gameCardHTML(g, isPast) {
       const statusText = isPast ? "Final" : "Live";
+      const code = g.joinCode ?? "----";
+      const hash = "#" + g.id.slice(-6);
       return `
-        <div class="rounded-xl bg-white shadow p-4">
+        <div class="rounded-xl bg-white shadow p-4" data-card="${g.id}" id="card-${g.id}">
           <div class="flex items-center justify-between mb-2">
             <div class="font-bold">${g.title || "Guard Scoreboard"} (${statusText})</div>
-            <div class="text-xs text-stone-500">#${g.id.slice(-6)}</div>
+            <div class="text-right text-xs text-stone-500">
+              <div>Scoreboard ID: <span id="code-${g.id}" class="font-semibold text-stone-700">${code}</span></div>
+              <div>Legacy: <span id="hash-${g.id}" class="font-mono">${hash}</span></div>
+            </div>
           </div>
+
           <div class="text-lg font-extrabold tabular-nums" id="scores-${g.id}"></div>
+
+          <!-- Per-game analytics -->
+          <div id="analytics-${g.id}" class="mt-4 text-xs"></div>
         </div>`;
     }
   </script>
