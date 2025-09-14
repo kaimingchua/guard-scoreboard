@@ -22,18 +22,13 @@
   const chartInstances = {};
 
   // Live / Collaboration
-  const live = { 
-    enabled: false, 
-    gameId: null, 
-    ref: null, 
-    unsub: null,
-    clientId: null,
-    lastAppliedHash: null,
-    lastWrittenHash: null,
-    lastServerUpdatedAt: 0,
-    suppressSync: false
-  };
+  const live = { enabled: false, gameId: null, ref: null, unsub: null };
   const LIVE_STORAGE_KEY = "guard.liveGameId";
+
+  // NEW: guard flags/hashes to prevent feedback loops & needless updates
+  let suppressSync = false;              // when true, local writes are suppressed (during remote apply)
+  live.lastAppliedHash = "";             // hash of last applied remote state
+  live.lastWrittenHash = "";             // hash of last written local state
 
   // =========================
   // Helpers
@@ -41,6 +36,28 @@
   const $  = (sel) => document.querySelector(sel);
   const $$ = (sel) => Array.from(document.querySelectorAll(sel));
   const deepCopy = (obj) => JSON.parse(JSON.stringify(obj));
+
+  // NEW: stable stringify to ensure deterministic hashing (keys sorted)
+  function stableStringify(value) {
+    const seen = new WeakSet();
+    const helper = (v) => {
+      if (v && typeof v === "object") {
+        if (seen.has(v)) return null;
+        seen.add(v);
+        if (Array.isArray(v)) {
+          return v.map(helper);
+        } else {
+          const out = {};
+          Object.keys(v).sort().forEach(k => {
+            out[k] = helper(v[k]);
+          });
+          return out;
+        }
+      }
+      return v;
+    };
+    return JSON.stringify(helper(value));
+  }
 
   const getRate = (id) => parseInt($(id)?.value, 10) || 0;
   const WIN  = () => getRate("#winRate");
@@ -60,13 +77,39 @@
     return `${h}:${m}${ampm}`;
   };
 
-  // Stable client id
   if (!localStorage.getItem("guard.clientId")) {
-    // randomUUID may not exist in older browsers; fallback
-    const uuid = (crypto && crypto.randomUUID) ? crypto.randomUUID() : Math.random().toString(36).slice(2);
-    localStorage.setItem("guard.clientId", uuid);
+    localStorage.setItem("guard.clientId", (typeof crypto !== "undefined" && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now() + Math.random()));
   }
   live.clientId = localStorage.getItem("guard.clientId");
+
+  function initZoomFeature(containerSelector) {
+    const slider = document.getElementById("zoomSlider");
+    const container = document.querySelector(containerSelector);
+  
+    if (!slider || !container) return;
+  
+    // Load saved zoom
+    const savedZoom = parseInt(localStorage.getItem("scoreboard.zoom") || "0", 10);
+    slider.value = savedZoom;
+  
+    const applyZoom = (val) => {
+      // Scale from 0.5x to 2x
+      let scale = 1 + (val / 100);
+      if (scale < 0.5) scale = 0.5;
+      if (scale > 2) scale = 2;
+  
+      container.style.transform = `scale(${scale})`;
+      container.style.transformOrigin = "top center";
+    };
+  
+    applyZoom(savedZoom);
+  
+    slider.addEventListener("input", () => {
+      const zoom = parseInt(slider.value, 10);
+      applyZoom(zoom);
+      localStorage.setItem("scoreboard.zoom", zoom);
+    });
+  }  
 
   function getPlayerName(i) {
     const el = $(`#name-${i}`);
@@ -92,7 +135,7 @@
     scoreLog.push(deepCopy(scores));
     orderLog.push([...order]);
     save();
-    if (!live.suppressSync) onStateChanged();
+    onStateChanged();
   }
 
   function addLogLine(entry) {
@@ -206,7 +249,10 @@
     updateCardStyles();
     updateSpecialActionButtons();
     save();
-    if (!live.suppressSync) onStateChanged();
+    // Only trigger sync if we're not applying a remote state
+    if (!suppressSync) {
+      onStateChanged();
+    }
   }
 
   function updateOrderAfterWin(winner) {
@@ -305,7 +351,7 @@
         setPlayerNameLabel(i);
         setTurnOrderText();
         save();
-        if (!live.suppressSync) onStateChanged();
+        onStateChanged();
       });
     }
 
@@ -511,85 +557,74 @@
 
   function applyRemoteState(data) {
     if (!data) return;
-
     // Ignore our own writes
     if (data.lastWriteBy && data.lastWriteBy === live.clientId) return;
 
-    // Read server updatedAt millis if present
-    const serverTs = (data.updatedAt && typeof data.updatedAt.toMillis === "function")
-      ? data.updatedAt.toMillis()
-      : 0;
-
-    // Build a snapshot of meaningful fields (ignore updatedAt, createdAt, status, lastWriteBy)
+    // Build normalized "meaningful" snapshot
     const meaningful = {
-      scores: data.scores,
-      order: data.order,
-      isFourPlayers: data.isFourPlayers,
-      historyLog: data.historyLog,
-      scoreLog: data.scoreLog,
-      orderLog: data.orderLog,
-      actionStats: data.actionStats,
-      players: data.players,
-      rates: data.rates,
+      scores: data.scores || {},
+      order: data.order || [1,2,3],
+      isFourPlayers: !!data.isFourPlayers,
+      historyLog: data.historyLog || [],
+      scoreLog: data.scoreLog || [],
+      orderLog: (data.orderLog || []).map(item =>
+        Array.isArray(item) ? item.join(",") : String(item)
+      ),
+      actionStats: data.actionStats || {},
+      players: data.players || {},
+      rates: data.rates || {},
     };
-    const payloadHash = JSON.stringify(meaningful);
 
-    // Skip if both timestamp and hash indicate no new info
-    if (serverTs && serverTs <= live.lastServerUpdatedAt && payloadHash === live.lastAppliedHash) {
+    const newHash = stableStringify(meaningful);
+    if (live.lastAppliedHash === newHash) {
+      // Nothing meaningful changed → skip UI update
       return;
     }
+    live.lastAppliedHash = newHash;
 
-    // Mark as applied
-    live.lastServerUpdatedAt = Math.max(live.lastServerUpdatedAt, serverTs);
-    live.lastAppliedHash = payloadHash;
+    // Apply remote state with sync suppression to avoid loops
+    suppressSync = true;
+    try {
+      scores        = data.scores      || {};
+      order         = data.order       || [1, 2, 3];
+      isFourPlayers = !!data.isFourPlayers;
+      historyLog    = data.historyLog  || [];
+      scoreLog      = data.scoreLog    || [];
+      orderLog      = (data.orderLog || []).map(item =>
+        typeof item === "string" ? item.split(",").map(Number) : item
+      );
+      actionStats   = data.actionStats || actionStats;
 
-    // Suppress local sync while applying remote state to UI
-    live.suppressSync = true;
+      buildPlayers();
 
-    // --- Apply the new state ---
-    scores        = data.scores      || {};
-    order         = data.order       || [1, 2, 3];
-    isFourPlayers = !!data.isFourPlayers;
-    historyLog    = data.historyLog  || [];
-    scoreLog      = data.scoreLog    || [];
-    orderLog      = (data.orderLog || []).map(item =>
-      typeof item === "string" ? item.split(",").map(Number) : item
-    );
-    actionStats   = data.actionStats || actionStats;
+      if (data.players) {
+        Object.entries(data.players).forEach(([i, name]) => {
+          const input = $(`#name-${i}`);
+          if (input) input.value = name;
+          setPlayerNameLabel(Number(i));
+        });
+      }
 
-    buildPlayers();
+      if (data.rates) {
+        if ($("#winRate"))  $("#winRate").value  = data.rates.win ?? $("#winRate").value;
+        if ($("#foulRate")) $("#foulRate").value = data.rates.foul ?? $("#foulRate").value;
+        if ($("#bcRate"))   $("#bcRate").value   = data.rates.bc ?? $("#bcRate").value;
+      }
 
-    if (data.players) {
-      Object.entries(data.players).forEach(([i, name]) => {
-        const input = $(`#name-${i}`);
-        if (input) input.value = name;
-        setPlayerNameLabel(Number(i));
-      });
+      setTurnOrderText();
+      updateAllScores();
+      rebuildHistoryUI();
+
+      // If analytics popup is open, refresh charts
+      const analyticsPopup = $("#analyticsPopup");
+      if (analyticsPopup && !analyticsPopup.classList.contains("hidden")) {
+        const active = $(".analytics-tab.bg-gray-200");
+        const target = active ? active.dataset.target : "scoreChart";
+        switchAnalyticsTab(target);
+      }
+    } finally {
+      suppressSync = false;
     }
-
-    if (data.rates) {
-      const winEl = $("#winRate");
-      const foulEl = $("#foulRate");
-      const bcEl = $("#bcRate");
-      if (winEl && data.rates.win != null)  winEl.value  = data.rates.win;
-      if (foulEl && data.rates.foul != null) foulEl.value = data.rates.foul;
-      if (bcEl && data.rates.bc != null)   bcEl.value   = data.rates.bc;
-    }
-
-    setTurnOrderText();
-    updateAllScores();
-    rebuildHistoryUI();
-
-    // If analytics popup is open, refresh charts
-    const analyticsPopup = $("#analyticsPopup");
-    if (analyticsPopup && !analyticsPopup.classList.contains("hidden")) {
-      const active = $(".analytics-tab.bg-gray-200");
-      const target = active ? active.dataset.target : "scoreChart";
-      switchAnalyticsTab(target);
-    }
-
-    // Re-enable sync after UI updates have finished this tick
-    setTimeout(() => { live.suppressSync = false; }, 0);
   }  
 
   const debouncedSyncLive = (() => {
@@ -616,10 +651,10 @@
             rates: newPayload.rates,
           };
   
-          const newHash = JSON.stringify(minimalPayload);
+          const newHash = stableStringify(minimalPayload);
   
-          // Only write if this differs from the last write AND differs from last applied
-          if (live.lastWrittenHash === newHash || live.lastAppliedHash === newHash) {
+          // Only write if this differs from the last write
+          if (live.lastWrittenHash === newHash) {
             return; // nothing meaningful changed
           }
           live.lastWrittenHash = newHash;
@@ -633,7 +668,7 @@
         } catch (e) {
           console.warn("live sync failed", e);
         }
-      }, 200);
+      }, 500); // slightly longer debounce to reduce churn
     };
   })();  
 
@@ -813,7 +848,6 @@
       live.enabled = false;
       live.ref = null;
       live.gameId = null;
-      live.lastWrittenHash = null;
       if (live.unsub) { try { live.unsub(); } catch {} live.unsub = null; }
       localStorage.removeItem(LIVE_STORAGE_KEY);
       const btn = $("#liveToggle");
@@ -831,39 +865,48 @@
         live.ref = ref;
         live.gameId = existingId;
         live.enabled = true;
-        live.lastWrittenHash = null;
-        await fns.setDoc(ref, { ...buildLivePayload(), updatedAt: fns.serverTimestamp() }, { merge: true });
+    
+        // Fetch existing to get joinCode
+        const snap = await fns.getDoc(ref);
+        let joinCode = snap.exists() ? snap.data().joinCode : null;
+        if (!joinCode) {
+          joinCode = Math.floor(1000 + Math.random() * 9000).toString(); // new 4-digit
+        }
+    
+        await fns.setDoc(ref, { 
+          ...buildLivePayload(), 
+          joinCode,
+          updatedAt: fns.serverTimestamp() 
+        }, { merge: true });
+    
         attachLiveListener(ref);
+    
+        alert(`Live sharing resumed.\nShare this Scoreboard ID: ${joinCode}`);
       } else {
         const gamesCol = fns.collection(db, "games");
         const initial = buildLivePayload();
+    
+        // Create new 4-digit join code
+        const joinCode = Math.floor(1000 + Math.random() * 9000).toString();
+        initial.joinCode = joinCode;
         initial.createdAt = fns.serverTimestamp();
         initial.updatedAt = fns.serverTimestamp();
+    
         const ref = await fns.addDoc(gamesCol, initial);
         live.ref = ref;
         live.gameId = ref.id;
         live.enabled = true;
-        live.lastWrittenHash = null;
         localStorage.setItem(LIVE_STORAGE_KEY, ref.id);
+    
         attachLiveListener(ref);
+    
+        alert(`Live sharing started.\nShare this Scoreboard ID: ${joinCode}`);
       }
-
-      const btn = $("#liveToggle");
-      if (btn) {
-        btn.textContent = "Live score sharing: ON";
-        btn.classList.remove("bg-emerald-600");
-        btn.classList.add("bg-red-600");
-      }
-
-      const liveUrl = `https://kaimingchua.github.io/guard-scoreboard/live.html`;
-      alert(`Live sharing started.\nShare this link with viewers:\n${liveUrl}`);
-
-      debouncedSyncLive();
     }
   };
 
   // =========================
-  // Join Session (by last 6 chars)
+  // Join Session (by last 6 chars or your UI code)
   // =========================
   function openJoinPopup() {
     $("#joinError")?.classList.add("hidden");
@@ -875,35 +918,35 @@
 
   async function joinSession() {
     const input = $("#joinInput");
-    const shortId = (input?.value || "").trim().toUpperCase();
+    const code = (input?.value || "").trim();
     const errEl = $("#joinError");
-    if (!shortId) return;
-
+    if (!code) return;
+  
     if (!window.__live?.db) {
       if (errEl) { errEl.textContent = "Firebase not initialized."; errEl.classList.remove("hidden"); }
       return;
     }
-
+  
     try {
       const { db, fns } = window.__live;
-      const snap = await fns.getDocs(fns.collection(db, "games"));
-      let found = null;
-      snap.forEach(doc => {
-        if (doc.id.slice(-6).toUpperCase() === shortId) {
-          found = doc.id;
-        }
-      });
-
-      if (found) {
+  
+      // Query games by joinCode
+      const q = fns.query(fns.collection(db, "games"), fns.where("joinCode", "==", code));
+      const snap = await fns.getDocs(q);
+  
+      if (!snap.empty) {
+        const doc = snap.docs[0];
+        const found = doc.id;
+  
         // Save, attach, and enable collaboration for this doc
         localStorage.setItem(LIVE_STORAGE_KEY, found);
         const ref = fns.doc(db, "games", found);
         live.ref = ref;
         live.gameId = found;
         live.enabled = true; // enable writes from this client too
-        live.lastWrittenHash = null;
         attachLiveListener(ref);
         closeJoinPopup();
+  
         // UI feedback
         const btn = $("#liveToggle");
         if (btn) {
@@ -911,7 +954,6 @@
           btn.classList.remove("bg-emerald-600");
           btn.classList.add("bg-red-600");
         }
-        // Pull first snapshot will populate the UI.
       } else {
         if (errEl) {
           errEl.textContent = "Match not found! Please check if your ID is correct.";
@@ -925,7 +967,7 @@
         errEl.classList.remove("hidden");
       }
     }
-  }
+  }  
 
   // =========================
   // Bootstrap
@@ -953,8 +995,8 @@
     ["#winRate", "#foulRate", "#bcRate"].forEach((id) => {
       const el = $(id);
       if (!el) return;
-      el.addEventListener("change", () => { save(); if (!live.suppressSync) onStateChanged(); });
-      el.addEventListener("input",  () => { save(); if (!live.suppressSync) onStateChanged(); });
+      el.addEventListener("change", () => { save(); onStateChanged(); });
+      el.addEventListener("input",  () => { save(); onStateChanged(); });
     });
 
     // Undo (z)
@@ -992,7 +1034,6 @@
         live.ref = ref;
         live.gameId = savedId;
         live.enabled = true; // allow collaborative edits
-        live.lastWrittenHash = null;
         attachLiveListener(ref);
         const btn = $("#liveToggle");
         if (btn) {
@@ -1003,9 +1044,9 @@
       }
     }
   }
-
+  initZoomFeature("#playerContainer");
   document.addEventListener("DOMContentLoaded", bootstrap);
-
+  
   // Expose join popup helpers globally (used by HTML onclick)
   window.openJoinPopup = openJoinPopup;
   window.closeJoinPopup = closeJoinPopup;

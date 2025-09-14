@@ -72,39 +72,57 @@
   </div>
 
   <!-- Controls Panel -->
-  <div id="controlsPanel" class="fixed left-0 right-0 top-[44px] mx-auto bg-white/95 dark:bg-gray-900/95 shadow-lg border-t border-gray-200 dark:border-gray-800 overflow-hidden max-h-0 transition-[max-height] duration-500 ease-in-out z-40">
-    <div class="px-4 py-3 grid gap-4 sm:grid-cols-3 text-black dark:text-white">
+  <div id="controlsPanel"
+    class="fixed left-0 right-0 top-[44px] mx-auto bg-white/95 dark:bg-gray-900/95 shadow-lg border-t border-gray-200 dark:border-gray-800 overflow-hidden max-h-0 transition-[max-height] duration-500 ease-in-out z-40">
+    <div class="px-4 py-3 grid grid-cols-3 items-center gap-4 text-black dark:text-white">
+      
+      <!-- Left: Action buttons -->
       <div class="flex flex-wrap gap-2">
-        <button onclick="showHelp()" class="bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded">Help</button>
-        <button onclick="clearGameData()" class="bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded">Clear</button>
-        <button onclick="showHistory()" class="bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded">History</button>
-        <button onclick="showAnalytics()" class="bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded">Score Analytics</button>
-        <button onclick="shareScoreboardToFacebook()" class="bg-blue-600 text-white px-3 py-1 rounded">Share to Facebook</button>
-        <button id="liveToggle" class="bg-emerald-600 text-white px-3 py-1 rounded" onclick="toggleLiveSharing()">Live score sharing: OFF</button>
-        <button id="joinSessionBtn" class="bg-white px-3 py-1 rounded">Join scoreboard session</button>
-      </div>    
-      <div class="flex flex-wrap items-center gap-4">
-        <label class="font-bold">Win:
-          <input type="number" id="winRate" value="3" class="w-16 px-2 py-1 text-black rounded" />
-        </label>
-        <label class="font-bold">Foul:
-          <input type="number" id="foulRate" value="1" class="w-16 px-2 py-1 text-black rounded" />
-        </label>
-        <label class="font-bold">BC:
-          <input type="number" id="bcRate" value="5" class="w-16 px-2 py-1 text-black rounded" />
-        </label>
-      </div>
-      <div class="flex flex-wrap gap-2">
-        <button id="togglePlayerCount" onclick="togglePlayerMode()" class="bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded">
+        <button onclick="showHelp()" class="bg-gray-100 dark:bg-gray-700 px-3 h-9 rounded">Help</button>
+        <button onclick="clearGameData()" class="bg-gray-100 dark:bg-gray-700 px-3 h-9 rounded">Clear</button>
+        <button onclick="showHistory()" class="bg-gray-100 dark:bg-gray-700 px-3 h-9 rounded">History</button>
+        <button onclick="showAnalytics()" class="bg-gray-100 dark:bg-gray-700 px-3 h-9 rounded">Analytics</button>
+        <button onclick="shareScoreboardToFacebook()" class="bg-blue-600 text-white px-3 h-9 rounded">Share</button>
+        <button id="liveToggle" onclick="toggleLiveSharing()" class="bg-emerald-600 text-white px-3 h-9 rounded">
+          Live OFF
+        </button>
+        <button id="togglePlayerCount" onclick="togglePlayerMode()" class="bg-gray-100 dark:bg-gray-700 px-3 h-9 rounded">
           3 Players Mode
         </button>
-        <button onclick="toggleDarkMode()" id="darkToggle" class="bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded">
+        <button onclick="toggleDarkMode()" id="darkToggle" class="bg-gray-100 dark:bg-gray-700 px-3 h-9 rounded">
           🌙
         </button>
-        <input type="hidden" id="playerCount" value="4" />
+      </div>
+      
+      <!-- Middle: Rate inputs -->
+      <div class="flex justify-center gap-4">
+        <label class="font-bold flex items-center gap-1">
+          Win: <input type="number" id="winRate" value="3" class="w-16 px-2 py-1 text-black rounded" />
+        </label>
+        <label class="font-bold flex items-center gap-1">
+          Foul: <input type="number" id="foulRate" value="1" class="w-16 px-2 py-1 text-black rounded" />
+        </label>
+        <label class="font-bold flex items-center gap-1">
+          BC: <input type="number" id="bcRate" value="5" class="w-16 px-2 py-1 text-black rounded" />
+        </label>
+      </div>
+      
+      <!-- Right: Scoreboard ID + Join Session + Zoom -->
+      <div class="flex flex-col items-end gap-2">
+        <div class="flex items-center gap-3">
+          <span class="text-sm">Scoreboard ID:
+            <span id="scoreboardId" class="font-mono text-emerald-700">----</span>
+          </span>
+          <button id="joinSessionBtn" class="bg-gray-100 dark:bg-gray-700 px-3 h-9 rounded">Join</button>
+        </div>
+        <label class="flex items-center gap-2">
+          <span class="font-bold">Zoom:</span>
+          <input id="zoomSlider" type="range" min="-100" max="100" value="0" />
+        </label>
       </div>
     </div>
   </div>
+
 
   <!-- Join Session Popup -->
   <div id="joinPopup" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
@@ -183,7 +201,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import {
       getFirestore, collection, doc, addDoc, setDoc, updateDoc, getDocs,
-      serverTimestamp, onSnapshot, query, orderBy
+      serverTimestamp, onSnapshot, query, orderBy, where
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
   
     const firebaseConfig = {
@@ -200,7 +218,22 @@
     const db  = getFirestore(app);
   
     // Expose a tiny SDK for your non-module script.js
-    window.__live = { db, fns: { collection, doc, addDoc, setDoc, updateDoc, serverTimestamp, onSnapshot, query, orderBy, getDocs } };
+    window.__live = { 
+      db, 
+      fns: { 
+        collection, 
+        doc, 
+        addDoc, 
+        setDoc, 
+        updateDoc, 
+        getDocs,
+        query, 
+        orderBy, 
+        serverTimestamp, 
+        onSnapshot,
+        where
+      } 
+    };
   </script>  
   <script src="script.js"></script>
   <script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js"></script>
