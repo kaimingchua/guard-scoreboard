@@ -5,105 +5,343 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Guard Scoreboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = { darkMode: 'class' }
-  </script>
   <style>
-  .analytics-canvas {
-    max-height: 320px;
-  }
-  #controlsPanel { will-change: max-height; }
-  @media (prefers-reduced-motion: reduce) {
-    #controlsPanel { transition: none !important; }
-  }
-  html:not(.dark) body {
-    background: #faf3e0;
-    color: #000 !important;
-  }
-  html:not(.dark) body::before {
-    content: "";
-    position: fixed;
-    inset: 0;
-    z-index: -1;
-    pointer-events: none;
-    background: linear-gradient(270deg,
-      #faf3e0,
-      #f5e6c8,
-      #fff8e7,
-      #f8ecda,
-      #faf3e0
-    );
-    background-size: 800% 800%;
-    animation: riceShift 25s ease-in-out infinite;
-  }
-  @keyframes riceShift {
-    0%   { background-position: 0% 50%; }
-    50%  { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    html:not(.dark) body::before { animation: none; }
-  }
-  html:not(.dark) body,
-  html:not(.dark) body * {
-    color: inherit;
-  }
+    body {
+      background: radial-gradient(circle at top left, #0f172a, #111827, #000);
+      color: #e5e7eb;
+      min-height: 100vh;
+      font-family: system-ui, sans-serif;
+    }
 
-  .score-text {
-    line-height: 1.1 !important;
-    display: block;
-    text-align: center;
-    height: auto;
-    overflow: visible;
-    margin-bottom: 0.5em;
-  }
+    @font-face {
+    font-family: 'BebasNeue-Regular';
+    src: url('fonts/BebasNeue-Regular.otf') format('truetype'); /* adjust if .otf or .woff */
+    font-weight: normal;
+    font-style: normal;
+    }
+
+    #controlsToggle,
+    #controlsPanel,
+    #controlsPanel button,
+    #controlsPanel input,
+    #controlsPanel label,
+    #scoreboardId,
+    #turnOrderDisplay,
+    #playerContainer input,
+    #playerContainer .score-text,
+    #playerContainer button,
+    .popup,
+    .popup h2,
+    .popup button,
+    .popup-glass,
+    .popup-glass h2,
+    .popup-glass button {
+    font-family: 'BebasNeue-Regular', system-ui, sans-serif !important;
+    letter-spacing: 0.04em;
+    }
+
+    #playerContainer button {
+      font-size: 1.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 0.6rem 1rem;
+    }    
+
+    /* Glass effect */
+    .glass {
+      background: rgba(30,41,59,0.55);
+      border: 1px solid rgba(147,197,253,0.4);
+      backdrop-filter: blur(12px);
+      box-shadow: 0 0 14px rgba(59,130,246,0.12);
+    }
+
+    /* Player glass cards */
+    .glass-card {
+      background: rgba(30,41,59,0.55);
+      border: 1px solid rgba(147,197,253,0.4);
+      backdrop-filter: blur(10px);
+      border-radius: 0.75rem;
+      padding: 1rem;
+      box-shadow: 0 0 12px rgba(59,130,246,0.12);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .glass-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 0 20px rgba(59,130,246,0.25);
+    }
+
+    /* Controls panel */
+    #controlsPanel button,
+    #controlsPanel input,
+    #controlsPanel label {
+      font-family: 'BebasNeue-Regular', system-ui, sans-serif;
+      letter-spacing: 0.04em;
+    }
+
+    #scoreboardId {
+      font-size: 1.25rem;
+      color: #93c5fd; /* light blue */
+      cursor: pointer;
+    }
+    
+    #controlsPanel span.text-sm {
+      font-size: 1rem;
+      letter-spacing: 0.03em;
+      font-family: 'BebasNeue-Regular', system-ui, sans-serif !important;
+    }
+
+    #controlsPanel {
+      will-change: max-height;
+      transition: max-height 0.5s ease-in-out;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      #controlsPanel { transition: none !important; }
+    }
+
+    /* Buttons */
+    .btn { @apply px-3 py-1 rounded transition-colors; }
+    .btn-neutral { @apply bg-gray-700 text-white hover:bg-gray-600; }
+    .btn-primary { @apply bg-blue-600 text-white hover:bg-blue-700; }
+    .btn-live { @apply bg-emerald-600 text-white hover:bg-emerald-700; }
+
+    /* Popups */
+    .popup {
+      @apply rounded-lg shadow-lg p-6 relative;
+      background: rgba(30,41,59,0.85);
+      border: 1px solid rgba(147,197,253,0.4);
+      backdrop-filter: blur(14px);
+      color: #e5e7eb;
+    }
+
+    #turnOrderDisplay {
+      font-size: clamp(1.6rem, 2.4vw + 0.4rem, 2.6rem);
+      letter-spacing: 0.04em;
+      margin-bottom: 0.8em;
+    }
+
+    #playerContainer input {
+      font-family: 'BebasNeue-Regular', system-ui, sans-serif;
+      font-size: clamp(1.25rem, 1.2vw + 0.6rem, 2rem);
+      letter-spacing: 0.03em;
+    }
+
+    #playerContainer .score-text {    
+      font-size: clamp(4.5rem, 9vw, 9rem);
+      line-height: 1;
+      letter-spacing: 0.02em;
+      color: #fff !important;
+    }
+
+    /* Glass input fields */
+    .glass-input {
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 0.5rem;
+      padding: 0.5rem 0.75rem;
+      color: #e5e7eb;
+      backdrop-filter: blur(10px);
+      transition: all 0.2s ease;
+    }
+
+    .glass-input:focus {
+      outline: none;
+      border-color: #60a5fa;
+      box-shadow: 0 0 10px rgba(96,165,250,0.6);
+    }
+
+    /* Adjust placeholder */
+    .glass-input::placeholder {
+      color: rgba(229, 231, 235, 0.6);
+    }
+
+    /* Glass labels & text */
+    .glass-label {
+      color: #cbd5e1;
+      font-weight: 500;
+    }
+
+    /* Glassified Controls Panel */
+    #controlsPanel {
+      background: rgba(30, 41, 59, 0.65) !important;
+      border: 1px solid rgba(147, 197, 253, 0.3);
+      backdrop-filter: blur(12px);
+      border-radius: 0.75rem;
+      box-shadow: 0 0 20px rgba(59, 130, 246, 0.15);
+    }
+
+    /* Glassy Buttons */
+    .glass-btn {
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #e5e7eb;
+      border-radius: 0.5rem;
+      padding: 0.4rem 0.9rem;
+      font-weight: 500;
+      backdrop-filter: blur(10px);
+      transition: all 0.2s ease;
+    }
+
+    .glass-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+      border-color: rgba(255, 255, 255, 0.35);
+      box-shadow: 0 0 10px rgba(255,255,255,0.25);
+    }
+
+    /* Special Glassy Buttons */
+    .glass-btn-primary {
+      background: linear-gradient(135deg, rgba(37,99,235,0.9), rgba(29,78,216,0.9));
+      border: 1px solid rgba(59,130,246,0.6);
+      color: #fff;
+    }
+    .glass-btn-primary:hover {
+      box-shadow: 0 0 12px rgba(59,130,246,0.7);
+    }
+
+    .glass-btn-emerald {
+      background: linear-gradient(135deg, rgba(16,185,129,0.9), rgba(5,150,105,0.9));
+      border: 1px solid rgba(16,185,129,0.6);
+      color: #fff;
+    }
+
+    .glass-btn-emerald:hover {
+      box-shadow: 0 0 12px rgba(16,185,129,0.7);
+    }
+
+    #zoomSlider {
+      accent-color: #60a5fa;
+      cursor: pointer;
+    }
+
+    /* Glassified Popups */
+    .popup-glass {
+      background: rgba(30, 41, 59, 0.65) !important;
+      border: 1px solid rgba(147,197,253,0.3);
+      border-radius: 0.75rem;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 0 25px rgba(59,130,246,0.25);
+      color: #e5e7eb !important;
+    }
+
+    /* Headings inside popups */
+    .popup-glass h2 {
+      color: #93c5fd !important;
+    }
+
+    /* Popup close button */
+    .popup-glass button {
+      color: #e5e7eb;
+    }
+
+    /* Glass Join Button */
+    #joinSessionBtn {
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.25);
+      backdrop-filter: blur(12px);
+      border-radius: 0.5rem;
+      padding: 0.4rem 0.9rem;
+      color: #e5e7eb;
+      transition: all 0.2s ease;
+    }
+
+    #joinSessionBtn:hover {
+      background: rgba(255,255,255,0.25);
+      box-shadow: 0 0 12px rgba(255,255,255,0.3);
+    }
+
+    .glass-input {
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.25);
+      color: #e5e7eb;
+      border-radius: 0.5rem;
+      padding: 0.4rem 0.6rem;
+      backdrop-filter: blur(10px);
+    }
+    
+    .glass-input:focus {
+      outline: none;
+      border-color: rgba(147,197,253,0.5);
+      box-shadow: 0 0 8px rgba(147,197,253,0.4);
+    }
+
+    /* Center score between name and buttons */
+    .player-card-content {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1.5rem;
+      height: 100%;
+    }
+
+    @keyframes glowToGreen {
+      0%   { color: #fff; text-shadow: none; }
+      50%  { 
+        color: #22c55e; 
+        text-shadow: 
+        0 0 8px rgba(34,197,94,0.8),
+        0 0 16px rgba(34,197,94,0.7),
+        0 0 24px rgba(34,197,94,0.6);
+      }
+      100% { color: #fff; text-shadow: none; }
+    }
+
+    @keyframes glowToRed {
+      0%   { color: #fff; text-shadow: none; }
+      50%  { 
+        color: #ef4444; 
+        text-shadow: 
+        0 0 8px rgba(239,68,68,0.8),
+        0 0 16px rgba(239,68,68,0.7),
+        0 0 24px rgba(239,68,68,0.6);
+      }
+      100% { color: #fff; text-shadow: none; }
+    }
+
+    .score-glow-green {
+      animation: glowToGreen 1.5s ease-in-out;
+    }
+
+    .score-glow-red {
+      animation: glowToRed 1.5s ease-in-out;
+    }
   </style>
 </head>
-<body class="transition-colors duration-300 dark:from-gray-900 dark:to-black min-h-screen font-semibold text-black dark:text-white">
+<body class="min-h-screen">
 
   <!-- Header -->
-  <div class="fixed top-0 left-0 w-full px-4 py-2 flex items-center justify-between bg-black/30 backdrop-blur z-50">
-    <span class="text-white font-extrabold text-xl tracking-wide">Guard!</span>
-    <button id="controlsToggle"
-      class="bg-white dark:bg-gray-700 px-3 py-1 rounded transition-colors"
-      aria-expanded="false" aria-controls="controlsPanel">
+  <div class="fixed top-0 left-0 w-full px-4 py-2 flex items-center justify-between glass z-50">
+    <span class="text-blue-300 font-extrabold text-xl tracking-wide">Guard!</span>
+    <button id="controlsToggle" class="btn btn-neutral" aria-expanded="false" aria-controls="controlsPanel">
       Controls ▾
     </button>
   </div>
 
   <!-- Controls Panel -->
   <div id="controlsPanel"
-    class="fixed left-0 right-0 top-[44px] mx-auto bg-white/95 dark:bg-gray-900/95 shadow-lg border-t border-gray-200 dark:border-gray-800 overflow-hidden max-h-0 transition-[max-height] duration-500 ease-in-out z-40">
-    <div class="px-4 py-3 grid grid-cols-1 md:grid-cols-3 items-center gap-4 gap-y-3 text-black dark:text-white">
+    class="fixed left-0 right-0 top-[44px] mx-auto glass overflow-hidden max-h-0 z-40">
+    <div class="px-4 py-3 grid grid-cols-1 md:grid-cols-3 items-center gap-4 gap-y-3">
       
       <!-- Left: Action buttons -->
       <div class="flex flex-wrap gap-2">
-        <button onclick="showHelp()" class="bg-gray-100 dark:bg-gray-700 px-3 h-9 rounded">Help</button>
-        <button onclick="clearGameData()" class="bg-gray-100 dark:bg-gray-700 px-3 h-9 rounded">Clear</button>
-        <button onclick="showHistory()" class="bg-gray-100 dark:bg-gray-700 px-3 h-9 rounded">History</button>
-        <button onclick="showAnalytics()" class="bg-gray-100 dark:bg-gray-700 px-3 h-9 rounded">Analytics</button>
-        <button onclick="shareScoreboardToFacebook()" class="bg-blue-600 text-white px-3 h-9 rounded">Share</button>
-        <button id="liveToggle" onclick="toggleLiveSharing()" class="bg-emerald-600 text-white px-3 h-9 rounded">
-          Live OFF
-        </button>
-        <button id="togglePlayerCount" onclick="togglePlayerMode()" class="bg-gray-100 dark:bg-gray-700 px-3 h-9 rounded">
-          3 Players Mode
-        </button>
-        <button onclick="toggleDarkMode()" id="darkToggle" class="bg-gray-100 dark:bg-gray-700 px-3 h-9 rounded">
-          🌙
-        </button>
-      </div>
+        <button onclick="showHelp()" class="glass-btn">Help</button>
+        <button onclick="clearGameData()" class="glass-btn">Clear</button>
+        <button onclick="showHistory()" class="glass-btn">History</button>
+        <button onclick="showAnalytics()" class="glass-btn">Analytics</button>
+        <button onclick="shareScoreboardToFacebook()" class="glass-btn glass-btn-primary">Share</button>
+        <button id="liveToggle" onclick="toggleLiveSharing()" class="glass-btn glass-btn-emerald">Live OFF</button>
+        <button id="togglePlayerCount" onclick="togglePlayerMode()" class="glass-btn">3 Players Mode</button>
+        </div>      
       
       <!-- Middle: Rate inputs -->
       <div class="flex justify-center flex-wrap gap-4">
         <label class="font-bold flex items-center gap-1">
-          Win: <input type="number" id="winRate" value="3" class="w-16 px-2 py-1 text-black rounded" />
+          Win: <input type="number" id="winRate" value="3" class="glass-input w-16 text-center" />
         </label>
         <label class="font-bold flex items-center gap-1">
-          Foul: <input type="number" id="foulRate" value="1" class="w-16 px-2 py-1 text-black rounded" />
+          Foul: <input type="number" id="foulRate" value="1" class="glass-input w-16 text-center" />
         </label>
         <label class="font-bold flex items-center gap-1">
-          BC: <input type="number" id="bcRate" value="5" class="w-16 px-2 py-1 text-black rounded" />
+          BC: <input type="number" id="bcRate" value="5" class="glass-input w-16 text-center" />
         </label>
       </div>
       
@@ -111,9 +349,9 @@
       <div class="flex flex-col items-start md:items-end gap-2">
         <div class="flex flex-wrap items-center gap-3">
           <span class="text-sm">Scoreboard ID:
-            <span id="scoreboardId" class="font-mono text-emerald-700">----</span>
+            <span id="scoreboardId" class="font-mono text-emerald-400 cursor-pointer underline" title="Click to copy">----</span>
           </span>
-          <button id="joinSessionBtn" class="bg-gray-100 dark:bg-gray-700 px-3 h-9 rounded">Join</button>
+          <button id="joinSessionBtn" onclick="openJoinPopup()" class="glass-btn">Join</button>
         </div>
         <label class="flex items-center gap-2">
           <span class="font-bold">Zoom:</span>
@@ -124,30 +362,17 @@
     </div>
   </div>
 
-  <!-- Join Session Popup -->
-  <div id="joinPopup" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
-    <div class="bg-white rounded-lg shadow-lg w-96 p-6 relative">
-      <button onclick="closeJoinPopup()" class="absolute top-2 right-3 text-xl font-bold">&times;</button>
-      <h2 class="text-lg font-bold mb-3">Join Scoreboard Session</h2>
-      <input id="joinInput" type="text" maxlength="6"
-        class="border px-3 py-2 w-full mb-3 rounded text-center text-black"
-        placeholder="Enter scoreboard ID (e.g. A1B2C3)" />
-      <button onclick="joinSession()" class="bg-emerald-600 text-white px-3 py-2 rounded w-full">Join</button>
-      <p id="joinError" class="text-red-500 text-sm mt-2 hidden"></p>
-    </div>
-  </div>  
-
   <!-- Turn Order -->
-  <div id="turnOrderDisplay" class="mt-24 sm:mt-28 mb-2 text-center text-lg font-bold text-white transition-colors">
+  <div id="turnOrderDisplay" class="mt-24 sm:mt-28 mb-2 text-center text-lg font-bold text-blue-300">
     Turn: -
   </div>
 
   <!-- Players -->
   <div id="playerContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-4 px-4 pb-28"></div>
 
-  <!-- Help Popup -->
+  <!-- Popups (Help, History, Analytics, Join) -->
   <div id="helpPopup" class="fixed inset-0 bg-black bg-opacity-50 hidden fade z-50 flex items-center justify-center">
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg w-11/12 max-w-lg p-4 max-h-[80vh] overflow-y-auto relative text-black dark:text-white transition-colors">
+    <div class="popup-glass w-11/12 max-w-lg p-4 max-h-[80vh] overflow-y-auto relative">
       <button onclick="hideHelp()" class="absolute top-2 right-3 text-xl font-bold">&times;</button>
       <h2 class="text-lg font-bold mb-3">🎱 How to Use the Scoreboard</h2>
       <ul class="list-disc pl-6 space-y-2 text-sm">
@@ -160,31 +385,25 @@
     </div>
   </div>
 
-  <!-- History Popup -->
-  <div id="historyPopup" class="fixed inset-0 bg-black bg-opacity-50 hidden fade z-50 flex items-center justify-center">
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg w-11/12 max-w-lg p-4 max-h-[80vh] overflow-y-auto relative">
+  <div id="historyPopup" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+    <div class="popup w-11/12 max-w-lg max-h-[80vh] overflow-y-auto">
       <button onclick="hideHistory()" class="absolute top-2 right-3 text-xl font-bold">&times;</button>
       <h2 class="text-lg font-bold mb-3">📜 Score History</h2>
-      <ul id="logList" class="text-sm space-y-2 text-black dark:text-white"></ul>
+      <ul id="logList" class="text-sm space-y-2"></ul>
     </div>
   </div>  
 
-  <!-- Analytics Popup -->
-  <div id="analyticsPopup" class="fixed inset-0 bg-black bg-opacity-50 hidden fade z-50 flex items-center justify-center">
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg w-11/12 max-w-3xl p-4 relative text-black dark:text-white">
+  <div id="analyticsPopup" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+    <div class="popup w-11/12 max-w-3xl">
       <button onclick="hideAnalytics()" class="absolute top-2 right-3 text-xl font-bold">&times;</button>
       <h2 class="text-lg font-bold mb-3">📊 Score Analytics</h2>
-
-      <!-- Tabs -->
-      <div class="flex gap-2 mb-4 border-b border-gray-300 dark:border-gray-700">
-        <button class="analytics-tab px-3 py-1 rounded-t bg-gray-200 dark:bg-gray-700" data-target="scoreChart">Scores</button>
-        <button class="analytics-tab px-3 py-1 rounded-t" data-target="foulChart">Total Fouls</button>
-        <button class="analytics-tab px-3 py-1 rounded-t" data-target="winChart">Total Wins</button>
-        <button class="analytics-tab px-3 py-1 rounded-t" data-target="goldenChart">Golden Breaks</button>
-        <button class="analytics-tab px-3 py-1 rounded-t" data-target="bcChart">Break Clears</button>
+      <div class="flex gap-2 mb-4 border-b border-gray-600">
+        <button class="analytics-tab px-3 py-1 rounded-t glass" data-target="scoreChart">Scores</button>
+        <button class="analytics-tab px-3 py-1 rounded-t glass" data-target="foulChart">Total Fouls</button>
+        <button class="analytics-tab px-3 py-1 rounded-t glass" data-target="winChart">Total Wins</button>
+        <button class="analytics-tab px-3 py-1 rounded-t glass" data-target="goldenChart">Golden Breaks</button>
+        <button class="analytics-tab px-3 py-1 rounded-t glass" data-target="bcChart">Break Clears</button>
       </div>
-
-      <!-- Canvases -->
       <div class="relative w-full h-80">
         <canvas id="scoreChart" class="analytics-canvas w-full h-full"></canvas>
         <canvas id="foulChart" class="analytics-canvas w-full h-full hidden"></canvas>
@@ -195,12 +414,26 @@
     </div>
   </div>
 
+  <!-- Join Session Popup -->
+  <div id="joinPopup" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+    <div class="popup-glass w-96 p-6 relative">
+    <button onclick="closeJoinPopup()" class="absolute top-2 right-3 text-xl font-bold">&times;</button>
+    <h2 class="text-lg font-bold mb-3">🔗 Join Scoreboard Session</h2>
+    <input id="joinInput" type="text" maxlength="6"
+        class="glass-input w-full mb-3 text-center"
+        placeholder="Enter scoreboard ID (e.g. 1234)" />
+    <button onclick="joinSession()" class="glass-btn glass-btn-emerald w-full">Join</button>
+    <p id="joinError" class="text-red-400 text-sm mt-2 hidden"></p>
+    </div>
+  </div>  
+
+  <!-- Firebase + Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import {
-      getFirestore, collection, doc, addDoc, setDoc, updateDoc, getDocs,
+      getFirestore, collection, doc, addDoc, setDoc, updateDoc, getDocs, getDoc,
       serverTimestamp, onSnapshot, query, orderBy, where
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
   
@@ -217,22 +450,10 @@
     const app = initializeApp(firebaseConfig);
     const db  = getFirestore(app);
   
-    // Expose a tiny SDK for your non-module script.js
     window.__live = { 
       db, 
-      fns: { 
-        collection, 
-        doc, 
-        addDoc, 
-        setDoc, 
-        updateDoc, 
-        getDocs,
-        query, 
-        orderBy, 
-        serverTimestamp, 
-        onSnapshot,
-        where
-      } 
+      fns: { collection, doc, addDoc, setDoc, updateDoc, getDocs, getDoc,
+        query, orderBy, serverTimestamp, onSnapshot, where }
     };
   </script>  
   <script src="script.js"></script>

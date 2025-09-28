@@ -6,27 +6,91 @@
   <title>Normal Team Scoreboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
+    /* Background */
+    body {
+      background: radial-gradient(circle at top left, #0f172a, #111827, #000);
+      color: #e5e7eb;
+      min-height: 100vh;
+      font-family: 'Bebas Neue', sans-serif;
+    }
+
+    @font-face {
+      font-family: 'Bebas Neue';
+      src: url('fonts/BebasNeue-Regular.otf') format('opentype');
+      font-weight: normal;
+      font-style: normal;
+    }
+
+    /* Glow for scores */
+    @keyframes scoreGlow {
+      0% { color: #fff; text-shadow: none; }
+      50% {
+        color: #22c55e;
+        text-shadow:
+          0 0 8px rgba(34,197,94,0.8),
+          0 0 16px rgba(34,197,94,0.7),
+          0 0 24px rgba(34,197,94,0.6);
+      }
+      100% { color: #fff; text-shadow: none; }
+    }
+    .score-glow { animation: scoreGlow 1.2s ease-in-out; }
+
+    /* Glass effect */
+    .glass-card {
+      background: rgba(30,41,59,0.55);
+      border: 1px solid rgba(147,197,253,0.4);
+      backdrop-filter: blur(12px);
+      border-radius: 0.75rem;
+      box-shadow: 0 0 14px rgba(59,130,246,0.12);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .glass-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 0 20px rgba(59,130,246,0.25);
+    }
+
+    /* Glass inputs */
+    .glass-input {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.25);
+      color: #fff;
+      backdrop-filter: blur(8px);
+    }
+
+    /* Glass buttons */
+    .glass-btn {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.25);
+      color: #fff;
+      transition: all 0.2s ease;
+    }
+    .glass-btn:hover { background: rgba(255,255,255,0.2); }
+
+    /* Foul floating animation */
     .foul-float {
       position: absolute;
+      z-index: 50;
       font-size: 1.2rem;
       font-weight: bold;
       opacity: 1;
       animation: floatUp 1s ease-out forwards;
       pointer-events: none;
+      color: #facc15;
+      text-shadow: 0 0 4px rgba(0,0,0,0.5);
     }
     @keyframes floatUp {
-      0%   { transform: translateY(0); opacity: 1; }
-      100% { transform: translateY(-30px); opacity: 0; }
+      0%   { transform: translate(-50%, 0); opacity: 1; }
+      100% { transform: translate(-50%, -30px); opacity: 0; }
     }
   </style>
 </head>
-<body class="bg-stone-50 text-stone-900 min-h-screen">
+<body>
 
   <!-- Header -->
-  <div class="fixed top-0 left-0 w-full px-4 py-2 flex items-center justify-between bg-black/10 backdrop-blur z-50">
-    <span class="text-black font-extrabold text-xl tracking-wide">Normal Scoreboard</span>
+  <div class="fixed top-0 left-0 w-full px-4 py-2 flex items-center justify-between bg-black/30 backdrop-blur z-50">
+    <span class="text-blue-300 font-extrabold text-2xl tracking-wide">Normal Scoreboard</span>
     <button id="controlsToggle"
-      class="bg-white px-3 py-1 rounded transition-colors border border-stone-200"
+      class="glass-btn px-3 py-1 rounded"
       aria-expanded="false" aria-controls="controlsPanel">
       Controls ▾
     </button>
@@ -34,82 +98,96 @@
 
   <!-- Controls Panel -->
   <div id="controlsPanel"
-    class="fixed left-0 right-0 top-[44px] mx-auto bg-white shadow-lg border-t border-gray-200 overflow-hidden max-h-0 transition-[max-height] duration-500 ease-in-out z-40">
-    <div class="px-4 py-3 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 text-black">
+    class="fixed left-0 right-0 top-[44px] mx-auto glass-card overflow-hidden max-h-0 transition-[max-height] duration-500 ease-in-out z-40">
+    <div class="px-4 py-3 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
 
       <!-- Actions -->
       <div class="flex flex-wrap items-center gap-2">
-        <button onclick="clearGame()" class="bg-gray-100 px-3 py-1 rounded border border-stone-200">Clear</button>
-        <button onclick="toggleLiveSharing()" id="liveToggle" class="bg-emerald-600 text-white px-3 py-1 rounded">
+        <button onclick="clearGame()" class="glass-btn px-3 py-1 rounded">Clear</button>
+        <button onclick="toggleLiveSharing()" id="liveToggle" class="px-3 py-1 rounded bg-emerald-600 text-white">
           Live score sharing: OFF
         </button>
-        <button onclick="showHistory()" class="bg-gray-100 px-3 py-1 rounded border border-stone-200">History</button>
-        <!-- Magnifier Slider -->
+        <button onclick="showHistory()" class="glass-btn px-3 py-1 rounded">History</button>
         <label class="flex items-center gap-2">
           <span class="font-bold">Zoom:</span>
           <input id="zoomSlider" type="range" min="-100" max="100" value="0" />
         </label>    
       </div>
 
-      <!-- Join existing scoreboard (4-digit code) -->
+      <!-- Join existing scoreboard -->
       <div class="flex flex-wrap items-center gap-2">
         <label for="joinInput" class="font-semibold">Join Scoreboard:</label>
         <input id="joinInput" type="text" maxlength="4"
           placeholder="4-digit ID"
-          class="border px-2 py-1 rounded w-28 text-center" />
+          class="glass-input px-2 py-1 rounded w-28 text-center" />
         <button id="joinBtn" class="bg-blue-600 text-white px-3 py-1 rounded">Join</button>
-        <span id="joinError" class="text-red-600 text-sm hidden">Match not found.</span>
+        <span id="joinError" class="text-red-400 text-sm hidden">Match not found.</span>
       </div>
 
       <!-- Current code display -->
-      <div class="flex items-center gap-2">
-        <div class="text-sm text-stone-600">Scoreboard ID:</div>
-        <div id="currentCode" class="text-base font-bold tracking-widest">----</div>
-        <div class="text-sm text-stone-400">(Legacy: <span id="legacyHash">------</span>)</div>
+      <div class="flex items-center gap-2 text-sm">
+        <div>Scoreboard ID:</div>
+        <div id="currentCode" class="text-lg font-bold tracking-widest">----</div>
+        <div class="text-gray-400">(Legacy: <span id="legacyHash">------</span>)</div>
       </div>
     </div>
   </div>
 
+  <div id="tournamentDetails" class="hidden text-center text-base font-semibold text-emerald-400 py-2 mt-[52px]"></div>
+
   <!-- Players -->
-  <div id="playerContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-4 px-4 pt-24 pb-28">
+  <div id="playerContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-6 px-4 pt-24 pb-2">
     <!-- Player 1 -->
-    <div id="card-1" class="bg-white rounded-lg p-4 shadow-md border border-stone-200">
+    <div id="card-1" class="relative glass-card p-6">
       <div class="flex flex-col items-center gap-3 text-center">
-        <input id="name-1" maxlength="20"
-          class="w-44 sm:w-56 px-3 py-1 rounded text-black text-base sm:text-lg text-center border border-stone-200"
-          value="Player 1"/>
-        <input id="team-1" maxlength="20"
-          class="w-44 sm:w-56 px-3 py-1 rounded text-black text-sm text-center border border-stone-200"
-          value="Team 1"/>
+        <input id="name-1" maxlength="20" class="glass-input w-44 sm:w-56 text-center text-lg rounded" value="Player 1"/>
+        <input id="team-1" maxlength="20" class="glass-input w-44 sm:w-56 text-center text-sm rounded" value="Team 1"/>
         <div>
-          <span id="score-1" class="block text-6xl font-extrabold">0</span>
+          <span id="score-1" class="block text-6xl md:text-7xl font-extrabold text-white">0</span>
         </div>
         <div class="grid grid-cols-3 gap-2 w-full max-w-md mt-2">
-          <button data-action="plus" class="px-3 py-2 rounded bg-green-500 text-white">+1</button>
-          <button data-action="minus" class="px-3 py-2 rounded bg-red-500 text-white">-1</button>
-          <button data-action="foul" class="px-3 py-2 rounded bg-yellow-500 text-black">FOUL</button>
+          <button data-action="plus" class="glass-btn bg-green-600 text-white">+1</button>
+          <button data-action="minus" class="glass-btn bg-red-600 text-white">-1</button>
+          <button data-action="foul" class="glass-btn bg-yellow-500 text-black">FOUL</button>
         </div>
       </div>
     </div>
 
     <!-- Player 2 -->
-    <div id="card-2" class="bg-white rounded-lg p-4 shadow-md border border-stone-200">
+    <div id="card-2" class="relative glass-card p-6">
       <div class="flex flex-col items-center gap-3 text-center">
-        <input id="name-2" maxlength="20"
-          class="w-44 sm:w-56 px-3 py-1 rounded text-black text-base sm:text-lg text-center border border-stone-200"
-          value="Player 2"/>
-        <input id="team-2" maxlength="20"
-          class="w-44 sm:w-56 px-3 py-1 rounded text-black text-sm text-center border border-stone-200"
-          value="Team 2"/>
+        <input id="name-2" maxlength="20" class="glass-input w-44 sm:w-56 text-center text-lg rounded" value="Player 2"/>
+        <input id="team-2" maxlength="20" class="glass-input w-44 sm:w-56 text-center text-sm rounded" value="Team 2"/>
         <div>
-          <span id="score-2" class="block text-6xl font-extrabold">0</span>
+          <span id="score-2" class="block text-6xl md:text-7xl font-extrabold text-white">0</span>
         </div>
         <div class="grid grid-cols-3 gap-2 w-full max-w-md mt-2">
-          <button data-action="plus" class="px-3 py-2 rounded bg-green-500 text-white">+1</button>
-          <button data-action="minus" class="px-3 py-2 rounded bg-red-500 text-white">-1</button>
-          <button data-action="foul" class="px-3 py-2 rounded bg-yellow-500 text-black">FOUL</button>
+          <button data-action="plus" class="glass-btn bg-green-600 text-white">+1</button>
+          <button data-action="minus" class="glass-btn bg-red-600 text-white">-1</button>
+          <button data-action="foul" class="glass-btn bg-yellow-500 text-black">FOUL</button>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- History Popup -->
+  <div id="historyPopup" class="fixed inset-0 bg-black/70 hidden fade z-50 flex items-center justify-center">
+    <div class="glass-card w-11/12 max-w-lg p-6 relative">
+      <button onclick="hideHistory()" class="absolute top-2 right-3 text-xl font-bold">&times;</button>
+      <h2 class="text-xl font-bold mb-4 text-blue-300">📜 Score History</h2>
+      <ul id="logList" class="text-sm space-y-2 text-white"></ul>
+    </div>
+  </div>
+
+  <!-- Live Popup -->
+  <div id="livePopup" class="fixed inset-0 bg-black/70 hidden flex items-center justify-center z-50">
+    <div class="glass-card w-80 p-6 relative text-center">
+      <button onclick="hideLivePopup()" class="absolute top-2 right-3 text-xl font-bold">&times;</button>
+      <h2 id="livePopupTitle" class="text-lg font-bold mb-3 text-blue-300">Live Score Sharing</h2>
+      <p id="livePopupStatus" class="mb-2 text-green-400 font-semibold">ON</p>
+      <p>Scoreboard ID:</p>
+      <div id="liveCodeDisplay" class="text-3xl font-bold tracking-widest cursor-pointer text-white">----</div>
+      <p class="text-sm text-gray-400 mt-2">Click the ID to copy</p>
     </div>
   </div>
 
@@ -117,8 +195,8 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import {
-      getFirestore, collection, doc, setDoc, addDoc, updateDoc, serverTimestamp,
-      onSnapshot, query, where, getDocs
+      getFirestore, collection, doc, setDoc, addDoc, updateDoc,
+      serverTimestamp, onSnapshot, query, where, getDocs, getDoc
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -134,23 +212,15 @@
     const app = initializeApp(firebaseConfig);
     const db  = getFirestore(app);
 
+    // Expose to window
     window.__live = {
       db,
-      fns: { collection, doc, setDoc, addDoc, updateDoc, serverTimestamp, onSnapshot, query, where, getDocs }
+      fns: { collection, doc, setDoc, addDoc, updateDoc, serverTimestamp, onSnapshot, query, where, getDocs, getDoc }
     };
   </script>
 
-  <!-- Main Logic -->
-  <script src="normal-script.js"></script>
-
-  <!-- History Popup -->
-  <div id="historyPopup" class="fixed inset-0 bg-black bg-opacity-50 hidden fade z-50 flex items-center justify-center">
-    <div class="bg-white rounded-lg shadow-lg w-11/12 max-w-lg p-4 max-h-[80vh] overflow-y-auto relative">
-      <button onclick="hideHistory()" class="absolute top-2 right-3 text-xl font-bold">&times;</button>
-      <h2 class="text-lg font-bold mb-3">📜 Score History</h2>
-      <ul id="logList" class="text-sm space-y-2 text-black"></ul>
-    </div>
-  </div>  
+  <!-- Main Logic (ensures DOM is ready) -->
+  <script type="module" defer src="./normal-script.js"></script>
 
 </body>
 </html>

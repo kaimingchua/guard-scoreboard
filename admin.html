@@ -6,14 +6,80 @@
   <title>Admin Scoreboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    @keyframes glowToGreen {
-      0%   { color: #000000; }
-      50%  { color: #16a34a; }
-      100% { color: #000000; }
+    body {
+      background: radial-gradient(circle at top left, #0f172a, #111827, #000);
+      color: #e5e7eb;
+      min-height: 100vh;
+      font-family: 'Bebas Neue', sans-serif;
     }
-    .score-glow {
-      animation: glowToGreen 1.2s ease-in-out;
+
+    @font-face {
+      font-family: 'Bebas Neue';
+      src: url('fonts/BebasNeue-Regular.otf') format('opentype');
+      font-weight: normal;
+      font-style: normal;
     }
+
+    @keyframes scoreGlow {
+      0% { color: #fff; text-shadow: none; }
+      50% {
+        color: #22c55e;
+        text-shadow:
+          0 0 8px rgba(34,197,94,0.8),
+          0 0 16px rgba(34,197,94,0.7),
+          0 0 24px rgba(34,197,94,0.6);
+      }
+      100% { color: #fff; text-shadow: none; }
+    }
+    .score-glow { animation: scoreGlow 1.2s ease-in-out; }
+
+    /* Glass effect */
+    .glass-card {
+      background: rgba(30,41,59,0.55);
+      border: 1px solid rgba(147,197,253,0.4);
+      backdrop-filter: blur(12px);
+      border-radius: 0.75rem;
+      box-shadow: 0 0 14px rgba(59,130,246,0.12);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .glass-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 0 20px rgba(59,130,246,0.25);
+    }
+
+    .glass-input {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.25);
+      color: #fff;
+      backdrop-filter: blur(8px);
+      padding: 0.25rem;
+      border-radius: 0.25rem;
+      text-align: center;
+    }
+
+    .glass-btn {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.25);
+      color: #fff;
+      transition: all 0.2s ease;
+    }
+    .glass-btn:hover { background: rgba(255,255,255,0.2); }
+
+    /* Tabs */
+    .tab-btn {
+      border-radius: 0.5rem;
+      font-weight: bold;
+      padding: 0.5rem 1rem;
+      transition: all 0.2s ease;
+    }
+    .tab-btn.active {
+      background: rgba(59,130,246,0.6);
+      border: 1px solid rgba(147,197,253,0.6);
+      color: #fff;
+      box-shadow: 0 0 12px rgba(59,130,246,0.6);
+    }
+
+    /* Delete button */
     .delete-btn {
       position: absolute;
       top: 0.25rem;
@@ -21,58 +87,74 @@
       background: #ef4444;
       color: white;
       border-radius: 9999px;
-      width: 1rem;
-      height: 1rem;
+      width: 1.25rem;
+      height: 1.25rem;
       display: flex;
       align-items: center;
       justify-content: center;
       font-weight: bold;
       cursor: pointer;
       font-size: 0.75rem;
+      box-shadow: 0 0 6px rgba(239,68,68,0.7);
+    }
+
+    .modal-bg {
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(4px);
     }
   </style>
 </head>
-<body class="bg-stone-50 text-stone-900">
+<body>
 
-  <!-- Tabs -->
   <div class="max-w-6xl mx-auto p-4">
-    <h1 class="text-2xl font-extrabold mb-4">Admin Dashboard</h1>
-    <div class="flex gap-4 mb-6">
-      <button id="tab-guard" class="tab-btn px-4 py-2 bg-blue-600 text-white rounded">Guard Scoreboard</button>
-      <button id="tab-normal" class="tab-btn px-4 py-2 bg-gray-200 rounded">Normal Scoreboard</button>
+    <h1 class="text-3xl font-extrabold mb-6 text-blue-300">Admin Dashboard</h1>
+    <div class="flex gap-4 mb-8">
+      <button id="tab-guard" class="tab-btn glass-btn active">Guard Scoreboard</button>
+      <button id="tab-normal" class="tab-btn glass-btn">Normal Scoreboard</button>
+      <button id="tab-tournament" class="tab-btn glass-btn">Tournament Matches</button>
     </div>
 
-    <!-- Guard Scoreboard -->
+    <!-- Guard -->
     <div id="guardView">
-      <h2 class="text-lg font-bold mb-2">Guard Ongoing Matches</h2>
+      <h2 class="text-lg font-bold mb-2 text-white">Guard Ongoing Matches</h2>
       <div id="guardGames" class="grid gap-4 md:grid-cols-2"></div>
-      <p id="guardEmpty" class="text-sm text-stone-500 hidden">No live games.</p>
+      <p id="guardEmpty" class="text-sm text-gray-400 hidden">No live games.</p>
 
-      <h2 class="text-lg font-bold mt-8 mb-2">Guard Past Matches</h2>
+      <h2 class="text-lg font-bold mt-8 mb-2 text-white">Guard Past Matches</h2>
       <div id="guardPastGames" class="grid gap-4 md:grid-cols-2"></div>
-      <p id="guardPastEmpty" class="text-sm text-stone-500 hidden">No past matches.</p>
+      <p id="guardPastEmpty" class="text-sm text-gray-400 hidden">No past matches.</p>
     </div>
 
-    <!-- Normal Scoreboard -->
+    <!-- Normal -->
     <div id="normalView" class="hidden">
-      <h2 class="text-lg font-bold mb-2">Normal Ongoing Matches</h2>
+      <h2 class="text-lg font-bold mb-2 text-white">Normal Ongoing Matches</h2>
       <div id="normalGames" class="grid gap-4 md:grid-cols-2"></div>
-      <p id="normalEmpty" class="text-sm text-stone-500 hidden">No live games.</p>
+      <p id="normalEmpty" class="text-sm text-gray-400 hidden">No live games.</p>
 
-      <h2 class="text-lg font-bold mt-8 mb-2">Normal Past Matches</h2>
+      <h2 class="text-lg font-bold mt-8 mb-2 text-white">Normal Past Matches</h2>
       <div id="normalPastGames" class="grid gap-4 md:grid-cols-2"></div>
-      <p id="normalPastEmpty" class="text-sm text-stone-500 hidden">No past matches.</p>
+      <p id="normalPastEmpty" class="text-sm text-gray-400 hidden">No past matches.</p>
     </div>
-  </div>
 
-  <!-- Delete confirm modal -->
-  <div id="deleteModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center">
-    <div class="bg-white p-6 rounded shadow-md max-w-sm w-full">
-      <h3 class="font-bold text-lg mb-3">Confirm Delete</h3>
+    <!-- Tournament -->
+    <div id="tournamentView" class="hidden">
+      <h2 class="text-lg font-bold mb-2 text-white">Tournament Ongoing Matches</h2>
+      <div id="tournamentGames" class="grid gap-4 md:grid-cols-2"></div>
+      <p id="tournamentEmpty" class="text-sm text-gray-400 hidden">No live games.</p>
+
+      <h2 class="text-lg font-bold mt-8 mb-2 text-white">Tournament Past Matches</h2>
+      <div id="tournamentPastGames" class="grid gap-4 md:grid-cols-2"></div>
+      <p id="tournamentPastEmpty" class="text-sm text-gray-400 hidden">No past matches.</p>
+    </div>
+
+  <!-- Delete Modal -->
+  <div id="deleteModal" class="fixed inset-0 modal-bg hidden flex items-center justify-center z-50">
+    <div class="glass-card p-6 max-w-sm w-full relative">
+      <h3 class="font-bold text-lg mb-3 text-red-400">Confirm Delete</h3>
       <p class="mb-4">Are you sure you want to delete this scoreboard?</p>
       <div class="flex justify-end gap-2">
-        <button id="cancelDelete" class="px-3 py-1 bg-gray-200 rounded">Cancel</button>
-        <button id="confirmDelete" class="px-3 py-1 bg-red-600 text-white rounded">Confirm</button>
+        <button id="cancelDelete" class="glass-btn px-3 py-1 rounded">Cancel</button>
+        <button id="confirmDelete" class="glass-btn bg-red-600 text-white px-3 py-1 rounded">Confirm</button>
       </div>
     </div>
   </div>
@@ -84,7 +166,6 @@
       doc, updateDoc, deleteDoc
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    // --- Firebase ---
     const firebaseConfig = {
       apiKey: "AIzaSyC_jSYoQLlsYvyMkE4fZ4bHFz2fkE70shk",
       authDomain: "guard-scoreboard.firebaseapp.com",
@@ -97,14 +178,12 @@
     const app = initializeApp(firebaseConfig);
     const db  = getFirestore(app);
 
-    // --- Password protect ---
     const pw = prompt("Enter admin password:");
     if (pw !== "0646") {
       document.body.innerHTML = "<div class='p-10 text-center text-red-600 font-bold text-xl'>Access Denied</div>";
       throw new Error("Access denied");
     }
 
-    // --- UI references ---
     const guardGamesWrap = document.getElementById("guardGames");
     const guardPastWrap  = document.getElementById("guardPastGames");
     const guardEmpty     = document.getElementById("guardEmpty");
@@ -115,6 +194,11 @@
     const normalEmpty     = document.getElementById("normalEmpty");
     const normalPastEmpty = document.getElementById("normalPastEmpty");
 
+    const tournamentGamesWrap = document.getElementById("tournamentGames");
+    const tournamentPastWrap  = document.getElementById("tournamentPastGames");
+    const tournamentEmpty     = document.getElementById("tournamentEmpty");
+    const tournamentPastEmpty = document.getElementById("tournamentPastEmpty");
+
     const deleteModal = document.getElementById("deleteModal");
     let pendingDelete = null;
 
@@ -123,35 +207,36 @@
       deleteModal.classList.add("hidden");
     };
     document.getElementById("confirmDelete").onclick = async () => {
-      if (pendingDelete) {
-        await deleteDoc(pendingDelete);
-      }
+      if (pendingDelete) await deleteDoc(pendingDelete);
       pendingDelete = null;
       deleteModal.classList.add("hidden");
     };
 
     function gameCardHTML(g, isPast, colName) {
-        const statusText = isPast ? "Final" : "Live";
-        const scores = g.scores || {};
-        const players = g.players || {};
-        const pids = Object.keys(players).map(Number).sort((a,b)=>a-b);
-        const id = g.id;
-        return `
-            <div class="rounded-xl bg-white shadow p-4 relative" data-col="${colName}" data-id="${id}">
-            <div class="delete-btn" data-del="${colName}|${id}">−</div>
-            <div class="flex items-center justify-between mb-2">
-                <div class="font-bold">${g.title || "Scoreboard"} (${statusText})</div>
-                <div class="text-xs text-stone-500">#${id.slice(-6)}</div>
+      const statusText = isPast ? "Final" : "Live";
+      const scores = g.scores || {};
+      const players = g.players || {};
+      const pids = Object.keys(players).map(Number).sort((a,b)=>a-b);
+      const id = g.id;
+      return `
+        <div class="glass-card p-4 relative" data-col="${colName}" data-id="${id}">
+          <div class="delete-btn" data-del="${colName}|${id}">−</div>
+          <div class="flex items-center justify-between mb-2">
+            <div class="font-bold text-blue-300">${g.title || "Match"} (${statusText})</div>
+            <div class="text-xs text-gray-400 text-right">
+              <div>ID: ${g.scoreboardCode || g.joinCode || "----"}</div>
+              <div class="text-[10px] text-gray-500">#${id.slice(-6)}</div>
             </div>
-            <div class="flex justify-between gap-4">
-                ${pids.map(pid => `
-                <div class="flex-1 text-center">
-                    <input class="font-bold text-center w-full" data-field="players.${pid}" value="${players[pid] || "P"+pid}" />
-                    <input class="text-xl text-center w-full" data-field="scores.${pid}" value="${scores[pid] ?? 0}" />
-                </div>
-                `).join("")}
-            </div>
-            </div>`;
+          </div>
+          <div class="flex justify-between gap-4">
+            ${pids.map(pid => `
+              <div class="flex-1 text-center">
+                <input class="glass-input font-bold w-full" data-field="players.${pid}" value="${players[pid] || "P"+pid}" />
+                <input class="glass-input text-xl w-full mt-1" data-field="scores.${pid}" value="${scores[pid] ?? 0}" />
+              </div>
+            `).join("")}
+          </div>
+        </div>`;
     }
 
     function renderGames(snap, wrap, pastWrap, emptyMsg, pastEmpty, colName) {
@@ -170,22 +255,10 @@
       emptyMsg.classList.toggle("hidden", liveGames.length > 0);
       pastEmpty.classList.toggle("hidden", pastGames.length > 0);
 
-      for (const g of liveGames) {
-        wrap.insertAdjacentHTML("beforeend", gameCardHTML(g, false, colName));
-      }
-      for (const g of pastGames) {
-        pastWrap.insertAdjacentHTML("beforeend", gameCardHTML(g, true, colName));
-      }
+      for (const g of liveGames) wrap.insertAdjacentHTML("beforeend", gameCardHTML(g, false, colName));
+      for (const g of pastGames) pastWrap.insertAdjacentHTML("beforeend", gameCardHTML(g, true, colName));
 
-      // Wire delete + edits
-      wrap.querySelectorAll(".delete-btn").forEach(btn => {
-        btn.onclick = () => {
-          const [c, id] = btn.dataset.del.split("|");
-          pendingDelete = doc(db, c, id);
-          deleteModal.classList.remove("hidden");
-        };
-      });
-      pastWrap.querySelectorAll(".delete-btn").forEach(btn => {
+      [...wrap.querySelectorAll(".delete-btn"), ...pastWrap.querySelectorAll(".delete-btn")].forEach(btn => {
         btn.onclick = () => {
           const [c, id] = btn.dataset.del.split("|");
           pendingDelete = doc(db, c, id);
@@ -193,59 +266,53 @@
         };
       });
 
-      // Wire inline edits
-      wrap.querySelectorAll("input").forEach(inp => {
+      [...wrap.querySelectorAll("input"), ...pastWrap.querySelectorAll("input")].forEach(inp => {
         inp.onchange = async () => {
-            const path = inp.dataset.field;
-            const card = inp.closest("[data-col][data-id]");
-            if (!card) return;
-            const c = card.dataset.col;
-            const id = card.dataset.id;
-            await updateDoc(doc(db, c, id), { [path]: inp.value });
-
-            // Animate glow
-            inp.classList.add("score-glow");
-            setTimeout(() => inp.classList.remove("score-glow"), 1200);
+          const path = inp.dataset.field;
+          const card = inp.closest("[data-col][data-id]");
+          if (!card) return;
+          const c = card.dataset.col;
+          const id = card.dataset.id;
+          await updateDoc(doc(db, c, id), { [path]: inp.value });
+          inp.classList.add("score-glow");
+          setTimeout(() => inp.classList.remove("score-glow"), 1200);
         };
-        });
-        pastWrap.querySelectorAll("input").forEach(inp => {
-        inp.onchange = async () => {
-            const path = inp.dataset.field;
-            const card = inp.closest("[data-col][data-id]");
-            if (!card) return;
-            const c = card.dataset.col;
-            const id = card.dataset.id;
-            await updateDoc(doc(db, c, id), { [path]: inp.value });
-
-            // Animate glow
-            inp.classList.add("score-glow");
-            setTimeout(() => inp.classList.remove("score-glow"), 1200);
-        };
-        });
+      });
     }
 
-    // --- Subscriptions ---
-    onSnapshot(query(collection(db, "games"), orderBy("updatedAt","desc")),
-      (snap) => renderGames(snap, guardGamesWrap, guardPastWrap, guardEmpty, guardPastEmpty, "games")
-    );
-    onSnapshot(query(collection(db, "normal-games"), orderBy("updatedAt","desc")),
-      (snap) => renderGames(snap, normalGamesWrap, normalPastWrap, normalEmpty, normalPastEmpty, "normal-games")
-    );
+    onSnapshot(query(collection(db, "guard"), orderBy("updatedAt","desc")),
+      snap => renderGames(snap, guardGamesWrap, guardPastWrap, guardEmpty, guardPastEmpty, "guard"));
+    onSnapshot(query(collection(db, "normal-match"), orderBy("updatedAt","desc")),
+      snap => renderGames(snap, normalGamesWrap, normalPastWrap, normalEmpty, normalPastEmpty, "normal-match"));
+    onSnapshot(query(collection(db, "tournament-match"), orderBy("updatedAt","desc")),
+      snap => renderGames(snap, tournamentGamesWrap, tournamentPastWrap, tournamentEmpty, tournamentPastEmpty, "tournament-match"));
 
-    // --- Tabs ---
+    // Tabs
+    function setActiveTab(activeId) {
+      ["tab-guard", "tab-normal", "tab-tournament"].forEach(id => {
+        const btn = document.getElementById(id);
+        if (id === activeId) btn.classList.add("active");
+        else btn.classList.remove("active");
+      });
+    }
+
     document.getElementById("tab-guard").onclick = () => {
       document.getElementById("guardView").classList.remove("hidden");
       document.getElementById("normalView").classList.add("hidden");
-      document.getElementById("tab-guard").classList.add("bg-blue-600","text-white");
-      document.getElementById("tab-normal").classList.remove("bg-blue-600","text-white");
-      document.getElementById("tab-normal").classList.add("bg-gray-200");
+      document.getElementById("tournamentView").classList.add("hidden");
+      setActiveTab("tab-guard");
     };
     document.getElementById("tab-normal").onclick = () => {
       document.getElementById("guardView").classList.add("hidden");
       document.getElementById("normalView").classList.remove("hidden");
-      document.getElementById("tab-normal").classList.add("bg-blue-600","text-white");
-      document.getElementById("tab-guard").classList.remove("bg-blue-600","text-white");
-      document.getElementById("tab-guard").classList.add("bg-gray-200");
+      document.getElementById("tournamentView").classList.add("hidden");
+      setActiveTab("tab-normal");
+    };
+    document.getElementById("tab-tournament").onclick = () => {
+      document.getElementById("guardView").classList.add("hidden");
+      document.getElementById("normalView").classList.add("hidden");
+      document.getElementById("tournamentView").classList.remove("hidden");
+      setActiveTab("tab-tournament");
     };
   </script>
 </body>

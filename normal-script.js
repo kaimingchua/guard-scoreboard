@@ -1,641 +1,672 @@
-(() => {
-  "use strict";
+window.addEventListener("DOMContentLoaded", () => {
+  (function () {
+    "use strict";
 
-  // ---------- State ----------
-  let scores = { 1: 0, 2: 0 };
-  let historyLog = [];
-  let scoreLog = [];
-  let orderLog = [];
-  let actionStats = { foul: { 1: 0, 2: 0 } }; // fouls per player (analytics only)
-
-  const live = { enabled: false, gameId: null, ref: null, unsub: null, joinCode: null };
-  const LIVE_STORAGE_KEY = "normal.liveGameId";
-  const CODE_STORAGE_KEY = "normal.joinCode";
-
-  if (!localStorage.getItem("normal.clientId")) {
-    localStorage.setItem("normal.clientId", crypto.randomUUID());
-  }
-  live.clientId = localStorage.getItem("normal.clientId");
-
-  // ---------- Helpers ----------
-  const $ = (sel) => document.querySelector(sel);
-  const deepCopy = (obj) => JSON.parse(JSON.stringify(obj));
-
-  function initZoomFeature(containerSelector) {
-    const slider = document.getElementById("zoomSlider");
-    const container = document.querySelector(containerSelector);
-  
-    if (!slider || !container) return;
-  
-    // Load saved zoom
-    const savedZoom = parseInt(localStorage.getItem("scoreboard.zoom") || "0", 10);
-    slider.value = savedZoom;
-  
-    const applyZoom = (val) => {
-      // Scale from 0.5x to 2x
-      let scale = 1 + (val / 100);
-      if (scale < 0.5) scale = 0.5;
-      if (scale > 2) scale = 2;
-  
-      container.style.transform = `scale(${scale})`;
-      container.style.transformOrigin = "top center";
-    };
-  
-    applyZoom(savedZoom);
-  
-    slider.addEventListener("input", () => {
-      const zoom = parseInt(slider.value, 10);
-      applyZoom(zoom);
-      localStorage.setItem("scoreboard.zoom", zoom);
-    });
-  }  
-
-  function getPlayerName(i) {
-    const el = $(`#name-${i}`);
-    return el?.value?.trim() || `Player ${i}`;
-  }
-  function getTeamName(i) {
-    const el = $(`#team-${i}`);
-    return el?.value?.trim() || `Team ${i}`;
-  }
-  function formatTime(d) {
-    const t = new Date(d);
-    let h = t.getHours();
-    const m = String(t.getMinutes()).padStart(2, "0");
-    const ampm = h >= 12 ? "pm" : "am";
-    h = h % 12 || 12;
-    return `${h}:${m}${ampm}`;
-  }
-
-  function setCurrentCodeUI(code, hash) {
-    const codeEl = $("#currentCode");
-    const hashEl = $("#legacyHash");
-    if (codeEl) codeEl.textContent = code || "----";
-    if (hashEl) hashEl.textContent = hash || "------";
-  }
-
-  function stableStringify(obj) {
-    const seen = new WeakSet();
-    const s = (x) => {
-      if (x && typeof x === "object") {
-        if (seen.has(x)) return '"[Circular]"';
-        seen.add(x);
-        if (Array.isArray(x)) return "[" + x.map(s).join(",") + "]";
-        const keys = Object.keys(x).sort();
-        return "{" + keys.map(k => JSON.stringify(k) + ":" + s(x[k])).join(",") + "}";
-      }
-      return JSON.stringify(x);
-    };
-    return s(obj);
-  }
-
-  // Small flash helper for + / − visual feedback
-  function flashScore(i, type /* "plus" | "minus" */) {
-    const el = $(`#score-${i}`);
-    if (!el) return;
-    el.style.transition = "color 500ms ease";
-    el.style.color = type === "plus" ? "#16a34a" : "#dc2626"; // green / red
-    requestAnimationFrame(() => {
-      setTimeout(() => {
-        el.style.color = ""; // back to default
-      }, 500);
-    });
-  }
-
-  // ---------- History / Persistence ----------
-  function logState(text) {
-    historyLog.push({ text, time: new Date().toISOString() });
-    scoreLog.push(deepCopy(scores));
-    orderLog.push([1, 2]); // fixed two players
-    save();
-    onStateChanged();
-  }
-
-  function addLogLine(entry) {
-    const li = document.createElement("li");
-    li.innerHTML = `<span class="text-gray-500 text-xs">${formatTime(entry.time)}:</span> ${entry.text}`;
-    $("#logList")?.appendChild(li);
-  }
-
-  function rebuildHistoryUI() {
-    const list = $("#logList");
-    if (!list) return;
-    list.innerHTML = "";
-    historyLog.forEach(addLogLine);
-  }
-
-  function save() {
-    const payload = {
-      scores,
-      historyLog,
-      scoreLog,
-      orderLog,
-      players: { 1: getPlayerName(1), 2: getPlayerName(2) },
-      teams: { 1: getTeamName(1), 2: getTeamName(2) },
-      actionStats,
-    };
-    localStorage.setItem("normal.state", JSON.stringify(payload));
-  }
-
-  function restoreState() {
-    const raw = localStorage.getItem("normal.state");
-    if (!raw) return false;
-    try {
-      const s = JSON.parse(raw);
-      scores = s.scores || { 1: 0, 2: 0 };
-      historyLog = s.historyLog || [];
-      scoreLog = s.scoreLog || [];
-      orderLog = s.orderLog || [];
-      actionStats = s.actionStats || { foul: { 1: 0, 2: 0 } };
-
-      // populate inputs
-      if (s.players) {
-        Object.entries(s.players).forEach(([i, name]) => {
-          const input = $(`#name-${i}`);
-          if (input) input.value = name;
-        });
-      }
-      if (s.teams) {
-        Object.entries(s.teams).forEach(([i, name]) => {
-          const input = $(`#team-${i}`);
-          if (input) input.value = name;
-        });
-      }
-
-      // scores
-      [1, 2].forEach((i) => {
-        const el = $(`#score-${i}`);
-        if (el) el.textContent = String(scores[i] ?? 0);
-      });
-
-      rebuildHistoryUI();
-      return true;
-    } catch {
-      return false;
+    // Safety checks
+    if (!window.__live || !window.__live.db || !window.__live.fns) {
+      console.error(
+        "[normal-script] Missing window.__live db/fns. Make sure the module script that initializes Firebase ran before this file."
+      );
     }
-  }
 
-  // ---------- Core logic ----------
-  function updateAllScores() {
-    [1, 2].forEach((i) => {
-      const el = $(`#score-${i}`);
-      if (el) el.textContent = String(scores[i]);
-    });
-    save();
-    onStateChanged();
-  }
+    const db = window.__live?.db;
+    const {
+      collection,
+      doc,
+      setDoc,
+      addDoc,
+      updateDoc,
+      serverTimestamp,
+      onSnapshot,
+      query,
+      where,
+      getDocs,
+      getDoc,
+    } = window.__live?.fns || {};
 
-  function applyAction(player, action) {
-    if (action === "plus") {
-      scores[player] += 1;
-      logState(`${getPlayerName(player)} +1 point`);
-      updateAllScores();
-      addLogLine(historyLog[historyLog.length - 1]);
-      flashScore(player, "plus");
-    } else if (action === "minus") {
-      scores[player] -= 1;
-      logState(`${getPlayerName(player)} -1 point`);
-      updateAllScores();
-      addLogLine(historyLog[historyLog.length - 1]);
-      flashScore(player, "minus");
-    } else if (action === "foul") {
-      // Analytics only (no score change)
-      actionStats.foul[player] = (actionStats.foul[player] || 0) + 1;
-      logState(`${getPlayerName(player)} committed a foul`);
-      save();
-      onStateChanged();
-      addLogLine(historyLog[historyLog.length - 1]);
+    // DOM refs
+    const els = {
+      controlsToggle: document.getElementById("controlsToggle"),
+      controlsPanel: document.getElementById("controlsPanel"),
 
-      // Floating +1 animation
-      const btn = document.querySelector(`#card-${player} [data-action='foul']`);
-      if (btn) {
-        const float = document.createElement("div");
-        float.textContent = "+1";
-        float.className = "foul-float";
-        float.style.color = "#ca8a04";
-        float.style.left = "50%";
-        float.style.top = "0";
-        float.style.transform = "translateX(-50%)";
-        float.style.position = "absolute";
+      // join section
+      joinInput: document.getElementById("joinInput"),
+      joinBtn: document.getElementById("joinBtn"),
+      joinError: document.getElementById("joinError"),
 
-        btn.style.position = "relative";
-        btn.appendChild(float);
-        setTimeout(() => float.remove(), 1000);
+      currentCode: document.getElementById("currentCode"),
+      legacyHash: document.getElementById("legacyHash"),
+
+      // players and scores
+      name1: document.getElementById("name-1"),
+      team1: document.getElementById("team-1"),
+      score1: document.getElementById("score-1"),
+      card1: document.getElementById("card-1"),
+
+      name2: document.getElementById("name-2"),
+      team2: document.getElementById("team-2"),
+      score2: document.getElementById("score-2"),
+      card2: document.getElementById("card-2"),
+
+      // buttons (inside each card via data-action)
+      playerContainer: document.getElementById("playerContainer"),
+
+      // header controls
+      liveToggle: document.getElementById("liveToggle"),
+      zoomSlider: document.getElementById("zoomSlider"),
+
+      // history popup
+      historyPopup: document.getElementById("historyPopup"),
+      logList: document.getElementById("logList"),
+    };
+
+    const LIVE_STORAGE_KEY = "normal.liveGameId";
+    const STATE_STORAGE_KEY = "normal.localState";
+
+    // State
+    const state = {
+      sbRef: null,
+      unsub: null,
+      joined: false,
+      live: false,
+      lastSnapshot: null,
+
+      players: { 1: "Player 1", 2: "Player 2" },
+      teams: { 1: "Team 1", 2: "Team 2" },
+      scores: { 1: 0, 2: 0 },
+
+      actionStats: { foul: { 1: 0, 2: 0 } },
+
+      history: [],
+      zoom: 0,
+    };
+
+    // Utils
+    function clamp(n, min, max) {
+      return Math.max(min, Math.min(max, n));
+    }
+    function setText(el, text) {
+      if (el) el.textContent = text;
+    }
+    function setValue(el, val) {
+      if (el) el.value = val;
+    }
+    function appendHistory(text) {
+      const entry = `[${new Date().toLocaleTimeString()}] ${text}`;
+      state.history.push(entry);
+      if (state.history.length > 200) state.history.shift();
+      if (els.logList) {
+        const li = document.createElement("li");
+        li.textContent = entry;
+        els.logList.appendChild(li);
       }
     }
-  }
-
-  // ---------- Live sharing to Firestore ----------
-  function buildLivePayload() {
-    return {
-      title: "Normal Scoreboard",
-      players: { 1: getPlayerName(1), 2: getPlayerName(2) },
-      teams: { 1: getTeamName(1), 2: getTeamName(2) },
-      scores,
-      actionStats,
-      status: "live",
-      joinCode: live.joinCode || null,
-      lastWriteBy: live.clientId || "unknown"
-    };
-  }
-
-  function minimalStateForHash(payload) {
-    return {
-      players: payload.players,
-      teams: payload.teams,
-      scores: payload.scores,
-      actionStats: payload.actionStats,
-      status: payload.status,
-      joinCode: payload.joinCode
-    };
-  }
-
-  // Prevent loops / spam
-  let suppressSyncUntil = 0;
-
-  const debouncedSyncLive = (() => {
-    let t;
-    return function () {
-      if (!live.enabled || !live.ref) return;
-      if (Date.now() < suppressSyncUntil) return; // ignore during suppression window
-      clearTimeout(t);
-      t = setTimeout(async () => {
-        try {
-          const { fns } = window.__live || {};
-          if (!fns) return;
-          const payload = buildLivePayload();
-          const newHash = stableStringify(minimalStateForHash(payload));
-          if (live.lastWrittenHash === newHash) return;
-          live.lastWrittenHash = newHash;
-
-          await fns.updateDoc(live.ref, {
-            ...payload,
-            updatedAt: fns.serverTimestamp(),
-          });
-        } catch (e) {
-          console.warn("live sync failed", e);
-        }
-      }, 200);
-    };
-  })();
-
-  function onStateChanged() {
-    debouncedSyncLive();
-  }
-
-  function applyRemoteState(data) {
-    if (!data) return;
-    if (data.lastWriteBy && data.lastWriteBy === live.clientId) return;
-
-    const meaningful = minimalStateForHash(data);
-    const incomingHash = stableStringify(meaningful);
-    if (live.lastAppliedHash === incomingHash) return;
-
-    live.lastAppliedHash = incomingHash;
-
-    // Apply state
-    scores = data.scores || { 1: 0, 2: 0 };
-    actionStats = data.actionStats || { foul: { 1: 0, 2: 0 } };
-
-    // Update names/teams
-    if (data.players) {
-      Object.entries(data.players).forEach(([i, name]) => {
-        const input = $(`#name-${i}`);
-        if (input) input.value = name;
-      });
+    function applyZoom(percentage) {
+      state.zoom = clamp(parseInt(percentage || 0, 10), -100, 100);
+      const scale = 1 + state.zoom / 200;
+      if (els.playerContainer) {
+        els.playerContainer.style.transformOrigin = "top center";
+        els.playerContainer.style.transform = `scale(${scale})`;
+      }
     }
-    if (data.teams) {
-      Object.entries(data.teams).forEach(([i, name]) => {
-        const input = $(`#team-${i}`);
-        if (input) input.value = name;
-      });
+    function generateScoreboardCode() {
+      const n = Math.floor(Math.random() * 10000);
+      return String(n).padStart(4, "0");
+    }
+    function isFirestoreId(str) {
+      return !!str && str.length > 6;
+    }
+    function isFourDigitCode(str) {
+      return /^\d{4}$/.test(str);
+    }
+    function debounce(fn, ms = 300) {
+      let t = null;
+      return (...args) => {
+        clearTimeout(t);
+        t = setTimeout(() => fn.apply(this, args), ms);
+      };
     }
 
-    // Update UI scores
-    [1, 2].forEach((i) => {
-      const el = $(`#score-${i}`);
-      if (el) el.textContent = String(scores[i] ?? 0);
-    });
-
-    // Show code/hash
-    live.joinCode = data.joinCode || live.joinCode || null;
-    setCurrentCodeUI(live.joinCode || "----", live.gameId ? `#${live.gameId.slice(-6)}` : "------");
-
-    // Suppress our own immediate sync for 700ms to avoid flicker/loop
-    suppressSyncUntil = Date.now() + 700;
-  }
-
-  function attachLiveListener(ref) {
-    // Clean previous
-    if (live.unsub) {
-      try { live.unsub(); } catch {}
-      live.unsub = null;
+    // Local persistence
+    function saveLocalState() {
+      const payload = {
+        players: state.players,
+        teams: state.teams,
+        scores: state.scores,
+        actionStats: state.actionStats,
+        currentCode: els.currentCode?.textContent || "----",
+        legacyHash: els.legacyHash?.textContent || "------",
+      };
+      localStorage.setItem(STATE_STORAGE_KEY, JSON.stringify(payload));
     }
-
-    const { fns } = window.__live || {};
-    if (!fns) return;
-
-    live.unsub = fns.onSnapshot(ref, (doc) => {
-      const data = doc.data();
-      if (data) applyRemoteState(data);
-    }, (err) => {
-      console.warn("live onSnapshot error:", err);
-    });
-  }
-
-  async function generateUnique4DigitCode(colName) {
-    const { db, fns } = window.__live;
-    let attempts = 0;
-    while (attempts < 15) {
-      const code = String(Math.floor(1000 + Math.random() * 9000));
-      const q = fns.query(fns.collection(db, colName), fns.where("joinCode", "==", code));
-      const snap = await fns.getDocs(q);
-      if (snap.empty) return code;
-      attempts++;
-    }
-    throw new Error("Unable to allocate a unique 4-digit code.");
-  }
-
-  window.toggleLiveSharing = async function toggleLiveSharing() {
-    if (!window.__live?.db) {
-      alert("Live sharing not available (Firebase not initialized).");
-      return;
-    }
-    if (live.enabled) {
-      // stop
+    function restoreLocalState() {
       try {
-        if (live.ref) {
-          await window.__live.fns.updateDoc(live.ref, {
-            status: "ended",
-            updatedAt: window.__live.fns.serverTimestamp()
+        const saved = localStorage.getItem(STATE_STORAGE_KEY);
+        if (!saved) return;
+        const data = JSON.parse(saved);
+
+        state.players = data.players || state.players;
+        state.teams = data.teams || state.teams;
+        state.scores = data.scores || state.scores;
+        state.actionStats = data.actionStats || state.actionStats;
+
+        setValue(els.name1, state.players[1]);
+        setValue(els.name2, state.players[2]);
+        setValue(els.team1, state.teams[1]);
+        setValue(els.team2, state.teams[2]);
+        setText(els.score1, state.scores[1]);
+        setText(els.score2, state.scores[2]);
+        setText(els.currentCode, data.currentCode || "----");
+        setText(els.legacyHash, data.legacyHash || "------");
+
+        appendHistory("Restored scoreboard from local storage.");
+      } catch (err) {
+        console.warn("[normal-script] restoreLocalState failed", err);
+      }
+    }
+
+    // Firestore Helpers
+    async function createNewScoreboardDoc({ p1, p2, t1, t2 }) {
+      const code = generateScoreboardCode();
+      const payload = {
+        title: "Normal Scoreboard",
+        players: { 1: p1, 2: p2 },
+        teams: { 1: t1, 2: t2 },
+        scores: { 1: 0, 2: 0 },
+        actionStats: { foul: { 1: 0, 2: 0 } },
+        status: "live",
+        scoreboardCode: code,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      };
+      const ref = await addDoc(collection(db, "normal-match"), payload);
+      appendHistory(`Created scoreboard (ID ${code}, hash ...${ref.id.slice(-6)})`);
+      return { ref, code };
+    }
+
+    async function joinByCodeOrId(codeOrId) {
+      if (!codeOrId) throw new Error("Empty code");
+
+      if (isFirestoreId(codeOrId)) {
+        const ref = doc(db, "normal-match", codeOrId);
+        return ref;
+      }
+      if (isFourDigitCode(codeOrId)) {
+        // First try normal-match
+        let q = query(collection(db, "normal-match"), where("scoreboardCode", "==", codeOrId));
+        let snap = await getDocs(q);
+        if (!snap.empty) return snap.docs[0].ref;
+
+        // Then try tournament-match
+        q = query(collection(db, "tournament-match"), where("scoreboardCode", "==", codeOrId));
+        snap = await getDocs(q);
+        if (!snap.empty) return snap.docs[0].ref;
+
+        throw new Error("No scoreboard found with code " + codeOrId);
+      }
+
+      throw new Error("Invalid code format");
+    }
+
+    function stopListening() {
+      if (state.unsub) {
+        state.unsub();
+        state.unsub = null;
+      }
+    }
+
+    function startListening(ref) {
+      stopListening();
+      state.sbRef = ref;
+      state.joined = true;
+
+      state.unsub = onSnapshot(
+        ref,
+        async (snap) => {
+          if (!snap.exists()) return;
+          state.lastSnapshot = snap.data();
+          const d = state.lastSnapshot;
+
+          if (d.players) {
+            state.players[1] = d.players[1];
+            state.players[2] = d.players[2];
+            setValue(els.name1, state.players[1]);
+            setValue(els.name2, state.players[2]);
+          }
+          if (d.teams) {
+            state.teams[1] = d.teams[1];
+            state.teams[2] = d.teams[2];
+            setValue(els.team1, state.teams[1]);
+            setValue(els.team2, state.teams[2]);
+          }
+          if (d.scores) {
+            state.scores[1] = d.scores[1];
+            state.scores[2] = d.scores[2];
+            setText(els.score1, state.scores[1]);
+            setText(els.score2, state.scores[2]);
+          }
+          if (d.actionStats && d.actionStats.foul) {
+            state.actionStats.foul[1] = d.actionStats.foul[1] ?? state.actionStats.foul[1];
+            state.actionStats.foul[2] = d.actionStats.foul[2] ?? state.actionStats.foul[2];
+          }
+
+          if (typeof d.status === "string") {
+            state.live = d.status === "live";
+            reflectLiveToggle();
+          }
+          setText(els.currentCode, d.scoreboardCode || "----");
+          setText(els.legacyHash, state.sbRef.id.slice(-6));
+
+          if (d.tournamentId) {
+            try {
+              const tRef = doc(db, "tournaments", d.tournamentId);
+              const tSnap = await getDoc(tRef);
+              if (tSnap.exists()) {
+                const t = tSnap.data();
+                const detailsEl = document.getElementById("tournamentDetails");
+                if (detailsEl) {
+                  const shortId = d.tournamentId.slice(-4);
+                  const raceToMap = t.raceTo || {};
+                  const raceVal = raceToMap[d.roundKey] || "--";
+                  detailsEl.innerHTML = `
+                    <div class="font-bold">${t.name || "Tournament"}</div>
+                    <div class="text-sm text-stone-600">Race to ${raceVal}</div>
+                    <div class="text-xs text-stone-500">ID: ${shortId}</div>
+                  `;
+                  detailsEl.classList.remove("hidden");
+                }
+              }
+            } catch (err) {
+              console.warn("[normal-script] failed to load tournament details:", err);
+            }
+          }
+
+          saveLocalState();
+        },
+        (err) => {
+          console.error("[normal-script] Snapshot error", err);
+          appendHistory("Snapshot error: " + err.message);
+        }
+      );
+    }
+
+    async function pushUpdate(partial) {
+      if (!state.sbRef) return;
+      const data = { ...partial, updatedAt: serverTimestamp() };
+      await updateDoc(state.sbRef, data);
+      saveLocalState();
+    }
+
+    const pushPlayersDebounced = debounce(() => {
+      pushUpdate({ players: { 1: state.players[1], 2: state.players[2] } });
+    }, 300);
+    const pushTeamsDebounced = debounce(() => {
+      pushUpdate({ teams: { 1: state.teams[1], 2: state.teams[2] } });
+    }, 300);
+    const pushScoresDebounced = debounce(async () => {
+      if (!state.sbRef) return;
+
+      await updateDoc(state.sbRef, {
+        scores: { 1: state.scores[1], 2: state.scores[2] },
+        updatedAt: serverTimestamp(),
+      });
+
+      try {
+        const sbSnap = await getDoc(state.sbRef);
+        const d = sbSnap.data();
+        if (d?.tournamentId && d?.roundKey && typeof d?.matchIndex === "number") {
+          const tRef = doc(db, "tournaments", d.tournamentId);
+          const tSnap = await getDoc(tRef);
+          if (!tSnap.exists()) return;
+
+          const tData = tSnap.data();
+          const rounds = tData.rounds || {};
+          const round = rounds[d.roundKey];
+          if (!round) return;
+
+          const idx = d.matchIndex;
+          const existing = round[idx] || {};
+          const updatedMatch = {
+            ...existing,
+            p1: existing.p1 || d.players?.[1] || state.players[1],
+            p2: existing.p2 || d.players?.[2] || state.players[2],
+            score1: state.scores[1],
+            score2: state.scores[2],
+            // status not overwritten
+          };
+
+          const newRound = round.slice();
+          newRound[idx] = updatedMatch;
+
+          await updateDoc(tRef, {
+            [`rounds.${d.roundKey}`]: newRound,
+            updatedAt: serverTimestamp(),
           });
         }
-      } catch {}
-      live.enabled = false;
-      live.ref = null;
-      live.gameId = null;
-      live.joinCode = null;
-      localStorage.removeItem(LIVE_STORAGE_KEY);
-      localStorage.removeItem(CODE_STORAGE_KEY);
-      $("#liveToggle").textContent = "Live score sharing: OFF";
-      setCurrentCodeUI("----", "------");
-      alert("Live sharing stopped.");
-    } else {
-      await startLiveGame();
-    }
-  };
-
-  async function startLiveGame() {
-    const { db, fns } = window.__live;
-    const gamesCol = fns.collection(db, "normal-games");
-
-    // Create a new unique 4-digit joinCode
-    const code = await generateUnique4DigitCode("normal-games");
-    live.joinCode = code;
-
-    const initial = buildLivePayload();
-    initial.createdAt = fns.serverTimestamp();
-    initial.updatedAt = fns.serverTimestamp();
-
-    const ref = await fns.addDoc(gamesCol, initial);
-    live.ref = ref;
-    live.gameId = ref.id;
-    live.enabled = true;
-
-    localStorage.setItem(LIVE_STORAGE_KEY, ref.id);
-    localStorage.setItem(CODE_STORAGE_KEY, code);
-
-    $("#liveToggle").textContent = "Live score sharing: ON";
-    setCurrentCodeUI(code, `#${ref.id.slice(-6)}`);
-
-    attachLiveListener(ref);
-
-    const liveUrl = `normal-live-score.html`;
-    alert(`Live sharing started!\nScoreboard ID: ${code}\nShare this link with viewers:\n${liveUrl}`);
-
-    debouncedSyncLive();
-  }
-
-  // ---------- Join by 4-digit Scoreboard ID ----------
-  async function joinByCode() {
-    const input = $("#joinInput");
-    const errEl = $("#joinError");
-    if (!input) return;
-    const code = (input.value || "").trim();
-    if (!code) return;
-
-    if (!window.__live?.db) {
-      errEl.textContent = "Firebase not initialized.";
-      errEl.classList.remove("hidden");
-      return;
-    }
-
-    try {
-      const { db, fns } = window.__live;
-      const q = fns.query(fns.collection(db, "normal-games"), fns.where("joinCode", "==", code));
-      const snap = await fns.getDocs(q);
-
-      if (snap.empty) {
-        errEl.textContent = "Match not found! Please check if your ID is correct.";
-        errEl.classList.remove("hidden");
-        return;
+      } catch (err) {
+        console.warn("[normal-script] tournament round update failed:", err);
       }
+    }, 120);
 
-      errEl.classList.add("hidden");
-      const doc = snap.docs[0];
-      const ref = fns.doc(db, "normal-games", doc.id);
-
-      // attach and enable writing
-      live.ref = ref;
-      live.gameId = doc.id;
-      live.joinCode = code;
-      live.enabled = true;
-
-      localStorage.setItem(LIVE_STORAGE_KEY, doc.id);
-      localStorage.setItem(CODE_STORAGE_KEY, code);
-
-      $("#liveToggle").textContent = "Live score sharing: ON";
-      setCurrentCodeUI(code, `#${doc.id.slice(-6)}`);
-
-      attachLiveListener(ref);
-      // first sync with remote (write our minimal changes after snapshot if needed)
-      debouncedSyncLive();
-    } catch (e) {
-      console.error("Join error:", e);
-      errEl.textContent = "Error checking session. Try again.";
-      errEl.classList.remove("hidden");
-    }
-  }
-
-  // ---------- Controls Panel ----------
-  function setControlsOpen(open) {
-    const panel = $("#controlsPanel");
-    const toggle = $("#controlsToggle");
-    if (!panel || !toggle) return;
-
-    panel.style.maxHeight = open ? panel.scrollHeight + "px" : "0px";
-    toggle.setAttribute("aria-expanded", open ? "true" : "false");
-    localStorage.setItem("normal.controlsOpen", open ? "1" : "0");
-  }
-
-  function toggleControls() {
-    const toggle = $("#controlsToggle");
-    const expanded = toggle?.getAttribute("aria-expanded") === "true";
-    setControlsOpen(!expanded);
-  }
-
-  function initControlsCollapsible() {
-    const toggleBtn = $("#controlsToggle");
-    const panel = $("#controlsPanel");
-    if (!toggleBtn || !panel) return;
-
-    toggleBtn.addEventListener("click", toggleControls);
-
-    const savedOpen = localStorage.getItem("normal.controlsOpen") === "1";
-    setControlsOpen(savedOpen);
-
-    // Resize recompute
-    window.addEventListener("resize", () => {
-      if (toggleBtn.getAttribute("aria-expanded") === "true") {
-        panel.style.maxHeight = panel.scrollHeight + "px";
-      }
-    });
-  }
-
-  // ---------- Public UI actions ----------
-  window.clearGame = function clearGame() {
-    if (!confirm("Clear all scores and history?")) return;
-    scores = { 1: 0, 2: 0 };
-    historyLog = [];
-    scoreLog = [];
-    orderLog = [];
-    actionStats = { foul: { 1: 0, 2: 0 } };
-
-    [1, 2].forEach((i) => {
-      const el = $(`#score-${i}`);
-      if (el) el.textContent = "0";
-    });
-
-    save();
-    rebuildHistoryUI();
-    onStateChanged();
-  };
-
-  window.showHistory = function showHistory() {
-    rebuildHistoryUI();
-    const popup = $("#historyPopup");
-    if (!popup) return;
-    popup.classList.remove("hidden");
-    requestAnimationFrame(() => popup.classList.add("opacity-100"));
-  };
-
-  window.hideHistory = function hideHistory() {
-    const popup = $("#historyPopup");
-    if (!popup) return;
-    popup.classList.add("hidden");
-    popup.classList.remove("opacity-100");
-  };
-
-  // ---------- Wiring ----------
-  function wirePlayerCard(i) {
-    const nameInput = $(`#name-${i}`);
-    const teamInput = $(`#team-${i}`);
-    const scoreEl = $(`#score-${i}`);
-    const card = $(`#card-${i}`);
-
-    if (!card || !scoreEl) return;
-
-    [nameInput, teamInput].forEach((input) => {
-      if (!input) return;
-      input.addEventListener("input", () => {
-        save();
-        onStateChanged();
+    // UI wiring
+    if (els.controlsToggle && els.controlsPanel) {
+      els.controlsToggle.addEventListener("click", () => {
+        const expanded = els.controlsToggle.getAttribute("aria-expanded") === "true";
+        const next = !expanded;
+        els.controlsToggle.setAttribute("aria-expanded", String(next));
+        els.controlsPanel.style.maxHeight = next ? "500px" : "0";
       });
-    });
+    }
 
-    scoreEl.style.cursor = "pointer";
-    scoreEl.addEventListener("click", () => {
-      const curr = scores[i] ?? 0;
-      const val = prompt(`Enter new score for ${getPlayerName(i)}:`, curr);
-      if (val === null) return;
-      if (!/^-?\d+$/.test(val.trim())) {
-        alert("Please enter a valid integer.");
-        return;
-      }
-      scores[i] = parseInt(val, 10);
-      logState(`${getPlayerName(i)}'s score manually set to ${scores[i]}.`);
-      updateAllScores();
-      addLogLine(historyLog[historyLog.length - 1]);
-    });
+    if (els.zoomSlider) {
+      els.zoomSlider.addEventListener("input", (e) => applyZoom(e.target.value));
+      applyZoom(els.zoomSlider.value || 0);
+    }
 
-    card.querySelectorAll("[data-action]").forEach((btn) => {
-      btn.addEventListener("click", () => {
+    if (els.name1)
+      els.name1.addEventListener("input", () => {
+        state.players[1] = els.name1.value.trim() || "Player 1";
+        pushPlayersDebounced();
+        saveLocalState();
+      });
+    if (els.name2)
+      els.name2.addEventListener("input", () => {
+        state.players[2] = els.name2.value.trim() || "Player 2";
+        pushPlayersDebounced();
+        saveLocalState();
+      });
+    if (els.team1)
+      els.team1.addEventListener("input", () => {
+        state.teams[1] = els.team1.value.trim() || "Team 1";
+        pushTeamsDebounced();
+        saveLocalState();
+      });
+    if (els.team2)
+      els.team2.addEventListener("input", () => {
+        state.teams[2] = els.team2.value.trim() || "Team 2";
+        pushTeamsDebounced();
+        saveLocalState();
+      });
+
+    if (els.playerContainer) {
+      els.playerContainer.addEventListener("click", (e) => {
+        const btn = e.target.closest("button[data-action]");
+        if (!btn) return;
+    
+        // Find the nearest player card by id (card-1, card-2, ...)
+        const card = btn.closest('[id^="card-"]');
+        const who = card ? Number(card.id.split("-")[1]) : 1;
+    
         const action = btn.getAttribute("data-action");
-        applyAction(i, action);
+        if (action === "plus") changeScore(who, +1);
+        else if (action === "minus") changeScore(who, -1);
+        else if (action === "foul") onFoul(who, btn);
       });
-    });
-  }
-
-  function wirePlayers() {
-    [1, 2].forEach((i) => wirePlayerCard(i));
-  }
-
-  // ---------- Init ----------
-  function bootstrap() {
-    // Wire controls panel and players
-    initControlsCollapsible();
-    wirePlayers();
-
-    // Restore or init
-    if (!restoreState()) {
-      scores = { 1: 0, 2: 0 };
-      [1, 2].forEach((i) => {
-        const el = $(`#score-${i}`);
-        if (el) el.textContent = "0";
-      });
-      logState("Game Started");
-      rebuildHistoryUI();
-      save();
     }
 
-    // Keyboard: Z = undo (optional)
-    window.addEventListener("keydown", (e) => {
-      if (e.key.toLowerCase() === "z" && !e.ctrlKey && !e.metaKey && !e.altKey) {
-        if (historyLog.length <= 1) return;
-        scoreLog.pop();
-        orderLog.pop();
-        historyLog.pop();
-        scores = deepCopy(scoreLog[scoreLog.length - 1] || { 1: 0, 2: 0 });
-        updateAllScores();
-        rebuildHistoryUI();
-      }
-    });
+    if (els.joinBtn && els.joinInput && els.joinError) {
+      els.joinBtn.addEventListener("click", async () => {
+        const input = els.joinInput.value.trim();
+        els.joinError.classList.add("hidden");
+        if (!input) {
+          els.joinError.textContent = "Please enter a code.";
+          els.joinError.classList.remove("hidden");
+          return;
+        }
+        try {
+          const ref = await joinByCodeOrId(input);
+          startListening(ref);
+          setText(
+            els.currentCode,
+            isFourDigitCode(input)
+              ? input
+              : state?.lastSnapshot?.scoreboardCode || "----"
+          );
+          setText(els.legacyHash, ref.id.slice(-6));
+          appendHistory(
+            `Joined scoreboard (${isFourDigitCode(input) ? "code" : "id"}: ${input})`
+          );
+          saveLocalState();
+        } catch (err) {
+          console.error(err);
+          els.joinError.textContent = "Match not found.";
+          els.joinError.classList.remove("hidden");
+          appendHistory("Join failed: " + err.message);
+        }
+      });
+    }
 
-    // Join by code
-    $("#joinBtn")?.addEventListener("click", joinByCode);
-    $("#joinInput")?.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") joinByCode();
-    });
-
-    // Auto-attach if we have a saved game id
-    if (window.__live?.db) {
-      const { db, fns } = window.__live;
-      const savedId = localStorage.getItem(LIVE_STORAGE_KEY);
-      const savedCode = localStorage.getItem(CODE_STORAGE_KEY);
-      if (savedId) {
-        const ref = fns.doc(db, "normal-games", savedId);
-        live.ref = ref;
-        live.gameId = savedId;
-        live.joinCode = savedCode || null;
-        live.enabled = true;
-        $("#liveToggle").textContent = "Live score sharing: ON";
-        setCurrentCodeUI(savedCode || "----", `#${savedId.slice(-6)}`);
-        attachLiveListener(ref);
+    function reflectLiveToggle() {
+      if (!els.liveToggle) return;
+      if (state.live) {
+        els.liveToggle.textContent = "Live score sharing: ON";
+        els.liveToggle.classList.remove("bg-emerald-600");
+        els.liveToggle.classList.add("bg-red-600");
       } else {
-        setCurrentCodeUI("----", "------");
+        els.liveToggle.textContent = "Live score sharing: OFF";
+        els.liveToggle.classList.add("bg-emerald-600");
+        els.liveToggle.classList.remove("bg-red-600");
       }
     }
-  }
-  initZoomFeature("#playerContainer");
-  document.addEventListener("DOMContentLoaded", bootstrap);
-})();
+
+    async function toggleLiveSharing() {
+      try {
+        if (!state.live) {
+          if (!state.joined) {
+            const { ref, code } = await createNewScoreboardDoc({
+              p1: state.players[1],
+              p2: state.players[2],
+              t1: state.teams[1],
+              t2: state.teams[2],
+            });
+            startListening(ref);
+            setText(els.currentCode, code);
+            setText(els.legacyHash, ref.id.slice(-6));
+            localStorage.setItem(LIVE_STORAGE_KEY, ref.id);
+            showLivePopup(code, true);
+          } else {
+            await pushUpdate({ status: "live" });
+          }
+          state.live = true;
+          reflectLiveToggle();
+          appendHistory("Live sharing turned ON");
+        } else {
+          if (state.joined) await pushUpdate({ status: "ended" });
+          state.live = false;
+          reflectLiveToggle();
+          appendHistory("Live sharing turned OFF");
+          localStorage.removeItem(LIVE_STORAGE_KEY);
+          showLivePopup(null, false);
+        }
+        saveLocalState();
+      } catch (err) {
+        console.error("[normal-script] toggleLiveSharing error", err);
+        appendHistory("toggleLiveSharing error: " + err.message);
+      }
+    }
+
+    function changeScore(who, delta) {
+      const before = state.scores[who];
+      let after = before + delta;
+      if (after < 0) after = 0;
+      state.scores[who] = after;
+    
+      // Dynamically grab the correct score element
+      const el = document.getElementById(`score-${who}`);
+      if (el) {
+        setText(el, after);
+        el.style.transform = "scale(1.08)";
+        setTimeout(() => (el.style.transform = "scale(1.0)"), 120);
+      }
+    
+      appendHistory(`Score ${who}: ${before} -> ${after}`);
+      pushScoresDebounced();
+      saveLocalState();
+    }    
+
+    function onFoul(who, triggerBtn) {
+      const card = who === 1 ? els.card1 : els.card2;
+      floatFoulAt(card, triggerBtn);
+
+      state.actionStats.foul[who] = (state.actionStats.foul[who] || 0) + 1;
+      appendHistory(`FOUL on Player ${who} (total: ${state.actionStats.foul[who]})`);
+
+      if (state.joined && state.sbRef) {
+        pushUpdate({ actionStats: state.actionStats });
+      }
+      saveLocalState();
+    }
+
+    function floatFoulAt(cardEl, triggerBtn) {
+      if (!cardEl || !triggerBtn) return;
+      const cardRect = cardEl.getBoundingClientRect();
+      const btnRect = triggerBtn.getBoundingClientRect();
+      const centerX = btnRect.left + btnRect.width / 2 - cardRect.left;
+      const topY = btnRect.top - cardRect.top - 6;
+      const tag = document.createElement("div");
+      tag.className = "foul-float";
+      tag.textContent = "+1";
+      tag.style.left = `${centerX}px`;
+      tag.style.top = `${topY}px`;
+      tag.style.color = "#f59e0b";
+      tag.style.textShadow = "0 1px 2px rgba(0,0,0,.25)";
+      cardEl.appendChild(tag);
+      setTimeout(() => tag.remove(), 1100);
+    }
+
+    async function clearGame() {
+      state.players = { 1: "Player 1", 2: "Player 2" };
+      state.teams = { 1: "Team 1", 2: "Team 2" };
+      state.scores = { 1: 0, 2: 0 };
+      state.actionStats = { foul: { 1: 0, 2: 0 } };
+
+      setValue(els.name1, state.players[1]);
+      setValue(els.name2, state.players[2]);
+      setValue(els.team1, state.teams[1]);
+      setValue(els.team2, state.teams[2]);
+      setText(els.score1, "0");
+      setText(els.score2, "0");
+      setText(els.currentCode, "----");
+      setText(els.legacyHash, "------");
+
+      appendHistory("Cleared local game state.");
+
+      localStorage.removeItem(STATE_STORAGE_KEY);
+      localStorage.removeItem(LIVE_STORAGE_KEY);
+
+      if (state.joined && state.sbRef) {
+        try {
+          const snap = await getDoc(state.sbRef);
+          if (snap.exists()) {
+            await updateDoc(state.sbRef, {
+              players: state.players,
+              teams: state.teams,
+              scores: state.scores,
+              actionStats: state.actionStats,
+              scoreboardCode: null,
+              updatedAt: serverTimestamp(),
+            });
+            appendHistory("Cleared remote scoreboard.");
+          }
+        } catch (err) {
+          console.error(err);
+          appendHistory("Failed to clear remote scoreboard: " + err.message);
+        }
+      }
+    }
+
+    function showHistory() {
+      els.historyPopup?.classList.remove("hidden");
+    }
+    function hideHistory() {
+      els.historyPopup?.classList.add("hidden");
+    }
+
+    setValue(els.name1, state.players[1]);
+    setValue(els.name2, state.players[2]);
+    setValue(els.team1, state.teams[1]);
+    setValue(els.team2, state.teams[2]);
+    setText(els.score1, String(state.scores[1]));
+    setText(els.score2, String(state.scores[2]));
+    setText(els.currentCode, "----");
+    setText(els.legacyHash, "------");
+
+    window.clearGame = clearGame;
+    window.toggleLiveSharing = toggleLiveSharing;
+    window.showHistory = showHistory;
+    window.hideHistory = hideHistory;
+
+    appendHistory("Normal scoreboard loaded.");
+
+    function showLivePopup(code, isOn = true) {
+      const popup = document.getElementById("livePopup");
+      const codeEl = document.getElementById("liveCodeDisplay");
+      const statusEl = document.getElementById("livePopupStatus");
+      const titleEl = document.getElementById("livePopupTitle");
+      if (popup && codeEl && statusEl && titleEl) {
+        titleEl.textContent = "Live Score Sharing";
+        if (isOn) {
+          statusEl.textContent = "ON";
+          statusEl.classList.remove("text-red-600");
+          statusEl.classList.add("text-green-600");
+          codeEl.textContent = code || "----";
+        } else {
+          statusEl.textContent = "OFF";
+          statusEl.classList.remove("text-green-600");
+          statusEl.classList.add("text-red-600");
+          codeEl.textContent = "----";
+        }
+        popup.classList.remove("hidden");
+      }
+    }
+    window.hideLivePopup = () => {
+      document.getElementById("livePopup")?.classList.add("hidden");
+    };
+
+    function initCopyHandlers() {
+      const idEl = document.getElementById("currentCode");
+      const popupCodeEl = document.getElementById("liveCodeDisplay");
+
+      function bindCopy(el) {
+        if (!el) return;
+        el.style.cursor = "pointer";
+        el.addEventListener("click", async () => {
+          const text = el.textContent.trim();
+          if (!text || text === "----") return;
+          try {
+            await navigator.clipboard.writeText(text);
+            const original = el.textContent;
+            el.textContent = "Copied!";
+            el.style.color = "#16a34a";
+            setTimeout(() => {
+              el.textContent = original;
+              el.style.color = "";
+            }, 1000);
+          } catch (err) {
+            console.error("Clipboard error:", err);
+            alert("Failed to copy scoreboard ID.");
+          }
+        });
+      }
+
+      bindCopy(idEl);
+      bindCopy(popupCodeEl);
+    }
+
+    restoreLocalState();
+
+    (function autoRestoreLiveGame() {
+      try {
+        const savedId = localStorage.getItem(LIVE_STORAGE_KEY);
+        if (!savedId) return;
+        const ref = doc(db, "normal-match", savedId);
+        startListening(ref);
+        appendHistory("Restored ongoing scoreboard from previous session.");
+      } catch (err) {
+        console.warn("[normal-script] autoRestoreLiveGame failed", err);
+      }
+    })();
+
+    initCopyHandlers();
+  })();
+});

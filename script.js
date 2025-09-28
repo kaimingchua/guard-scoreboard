@@ -1,9 +1,7 @@
 (() => {
   "use strict";
 
-  // =========================
   // Global State
-  // =========================
   let scores = {};
   let order = [1, 2, 3];
   let isFourPlayers = false;
@@ -21,23 +19,24 @@
 
   const chartInstances = {};
 
+  if (window.Chart) {
+    Chart.defaults.color = "#fff";
+    Chart.defaults.borderColor = "rgba(255,255,255,0.1)";
+  }
+
   // Live / Collaboration
   const live = { enabled: false, gameId: null, ref: null, unsub: null };
   const LIVE_STORAGE_KEY = "guard.liveGameId";
 
-  // NEW: guard flags/hashes to prevent feedback loops & needless updates
   let suppressSync = false;              // when true, local writes are suppressed (during remote apply)
   live.lastAppliedHash = "";             // hash of last applied remote state
   live.lastWrittenHash = "";             // hash of last written local state
 
-  // =========================
   // Helpers
-  // =========================
   const $  = (sel) => document.querySelector(sel);
   const $$ = (sel) => Array.from(document.querySelectorAll(sel));
   const deepCopy = (obj) => JSON.parse(JSON.stringify(obj));
 
-  // NEW: stable stringify to ensure deterministic hashing (keys sorted)
   function stableStringify(value) {
     const seen = new WeakSet();
     const helper = (v) => {
@@ -64,7 +63,7 @@
   const FOUL = () => getRate("#foulRate");
   const BC   = () => getRate("#bcRate");
 
-  const axisColor = () => (document.documentElement.classList.contains("dark") ? "#fff" : "#000");
+  // const axisColor = () => (document.documentElement.classList.contains("dark") ? "#fff" : "#000");
   const currentPlayerIds = () => Object.keys(scores).map(k => Number(k));
   const playerLabels = () => currentPlayerIds().map(pid => getPlayerName(pid));
 
@@ -127,9 +126,7 @@
     if (el) el.textContent = `Turn: ${names.join(" → ")}`;
   }
 
-  // =========================
   // History / Persistence
-  // =========================
   function logState(text) {
     historyLog.push({ text, time: new Date().toISOString() });
     scoreLog.push(deepCopy(scores));
@@ -201,9 +198,7 @@
     }
   }
 
-  // =========================
   // UI build / wiring
-  // =========================
   function updateCardStyles() {
     for (const i of Object.keys(scores)) {
       const card = document.getElementById(`card-${i}`);
@@ -236,24 +231,33 @@
       const before = old[i] ?? 0;
       const after = scores[i];
       el.textContent = String(after);
-
+  
+      // Pulse opacity on change
       el.classList.remove("opacity-70");
-      void el.offsetWidth;
+      void el.offsetWidth; // reflow to restart transition
       el.classList.add("opacity-70");
-
-      el.style.transition = "color 0.6s ease";
-      el.style.color = after > before ? "#22c55e" : after < before ? "#ef4444" : "";
-      setTimeout(() => (el.style.color = ""), 600);
+  
+      // Reset glow classes
+      el.classList.remove("score-glow-green", "score-glow-red");
+      void el.offsetWidth; // force reflow so animation can retrigger
+  
+      if (after > before) {
+        el.classList.add("score-glow-green");
+      } else if (after < before) {
+        el.classList.add("score-glow-red");
+      }
     }
+  
     setTurnOrderText();
     updateCardStyles();
     updateSpecialActionButtons();
     save();
+  
     // Only trigger sync if we're not applying a remote state
     if (!suppressSync) {
       onStateChanged();
     }
-  }
+  }  
 
   function updateOrderAfterWin(winner) {
     const idx = order.indexOf(winner);
@@ -323,22 +327,26 @@
 
   function playerCardHTML(i) {
     return `
-      <div id="card-${i}" class="bg-white/80 dark:bg-gray-800/60 rounded-lg p-4 shadow-md transition-colors">
-        <div class="flex flex-col items-center gap-3 text-center">
+      <div id="card-${i}" class="bg-white/10 dark:bg-gray-800/40 border border-white/20 rounded-lg p-4 shadow-md backdrop-blur-md transition-colors flex flex-col">
+        <div class="player-card-content text-center">
           <input id="name-${i}" maxlength="20"
-            class="w-44 sm:w-56 px-3 py-1 rounded text-black text-base sm:text-lg text-center"
+            class="glass-input w-44 sm:w-56 text-center text-base sm:text-lg"
             value="${getPlayerName(i)}" />
           <span id="name-label-${i}" class="hidden"></span>
+  
+          <!-- Score centered between name and controls -->
           <div class="leading-none">
             <span id="score-${i}"
               class="score-text select-none block text-6xl sm:text-7xl md:text-8xl font-extrabold opacity-70"
-              style="line-height: 0.9;">${scores[i] ?? 0}</span>
+              style="line-height: 1;">${scores[i] ?? 0}</span>
           </div>
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full max-w-md mt-2">
-            <button data-action="win" class="px-3 py-2 rounded bg-green-500 text-white">WIN</button>
-            <button data-action="foul" class="px-3 py-2 rounded bg-red-500 text-white">FOUL+</button>
-            <button data-action="bc" data-special class="px-3 py-2 rounded bg-yellow-500 text-black">BC</button>
-            <button data-action="golden" data-special class="px-3 py-2 rounded bg-indigo-600 text-white">GOLDEN</button>
+  
+          <!-- Action buttons (larger text) -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full max-w-md">
+            <button data-action="win"    class="px-3 py-2 rounded glass-btn-emerald text-xl sm:text-2xl uppercase tracking-wide font-bold">WIN</button>
+            <button data-action="foul"   class="px-3 py-2 rounded glass-btn bg-red-600/70 text-white text-xl sm:text-2xl uppercase tracking-wide font-bold">FOUL+</button>
+            <button data-action="bc"     data-special class="px-3 py-2 rounded glass-btn bg-yellow-500/80 text-black text-xl sm:text-2xl uppercase tracking-wide font-bold">BC</button>
+            <button data-action="golden" data-special class="px-3 py-2 rounded glass-btn bg-indigo-600/80 text-white text-xl sm:text-2xl uppercase tracking-wide font-bold">GOLDEN</button>
           </div>
         </div>
       </div>`;
@@ -404,9 +412,7 @@
     updateSpecialActionButtons();
   }
 
-  // =========================
   // Analytics (Charts)
-  // =========================
   function ensureChart(canvasId, configBuilder) {
     const canvas = document.getElementById(canvasId);
     if (!canvas) return;
@@ -434,7 +440,7 @@
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { labels: { color: axisColor() } } },
+        plugins: { legend: { labels: { color: "#fff" } } },
         scales: {
           y: {
             beginAtZero: false,
@@ -444,9 +450,9 @@
               scale.max += pad;
               scale.min -= pad;
             },
-            ticks: { color: axisColor() }
+            ticks: { color: "#fff" }
           },
-          x: { ticks: { color: axisColor() } }
+          x: { ticks: { color: "#fff" } }
         }
       }
     };
@@ -474,10 +480,10 @@
               stepSize: 1,
               precision: 0,
               callback: (value) => Number.isInteger(value) ? value : null,
-              color: axisColor()
+              color: "#fff"
             }
           },
-          x: { ticks: { color: axisColor() } }
+          x: { ticks: { color: "#fff" } }
         }
       }
     };
@@ -523,9 +529,7 @@
     });
   }
 
-  // =========================
   // Firestore Sync (collab)
-  // =========================
   function buildLivePayload() {
     const playerIds = Object.keys(scores).map(n => Number(n));
     const players = {};
@@ -577,7 +581,6 @@
 
     const newHash = stableStringify(meaningful);
     if (live.lastAppliedHash === newHash) {
-      // Nothing meaningful changed → skip UI update
       return;
     }
     live.lastAppliedHash = newHash;
@@ -638,7 +641,6 @@
           const { fns } = window.__live;
           const newPayload = buildLivePayload();
   
-          // Build a "minimal state" object (ignore updatedAt/lastWriteBy/status)
           const minimalPayload = {
             scores: newPayload.scores,
             order: newPayload.order,
@@ -655,7 +657,7 @@
   
           // Only write if this differs from the last write
           if (live.lastWrittenHash === newHash) {
-            return; // nothing meaningful changed
+            return;
           }
           live.lastWrittenHash = newHash;
   
@@ -668,7 +670,7 @@
         } catch (e) {
           console.warn("live sync failed", e);
         }
-      }, 500); // slightly longer debounce to reduce churn
+      }, 500);
     };
   })();  
 
@@ -690,9 +692,7 @@
     });
   }
 
-  // =========================
   // Controls Panel
-  // =========================
   function setControlsOpen(open) {
     const panel = document.getElementById("controlsPanel");
     const toggle = document.getElementById("controlsToggle");
@@ -722,9 +722,7 @@
     });
   }
 
-  // =========================
-  // Public UI Actions (exposed)
-  // =========================
+  // Public UI Actions
   window.togglePlayerMode = function() {
     const futureCount = isFourPlayers ? 3 : 4;
     if (!confirm(`Switch to ${futureCount} players?`)) return;
@@ -750,13 +748,6 @@
     logState(isFourPlayers ? "Switched to 4 players." : "Switched to 3 players.");
     rebuildHistoryUI();
     updateAllScores();
-  };
-
-  window.toggleDarkMode = function() {
-    const on = document.documentElement.classList.toggle("dark");
-    localStorage.setItem("wandollah.dark", on ? "1" : "0");
-    const btn = $("#darkToggle");
-    if (btn) btn.textContent = on ? "☀️" : "🌙";
   };
 
   window.clearGameData = function() {
@@ -861,7 +852,7 @@
       // Start new OR continue existing from local
       const existingId = localStorage.getItem(LIVE_STORAGE_KEY);
       if (existingId) {
-        const ref = fns.doc(db, "games", existingId);
+        const ref = fns.doc(db, "guard", existingId);
         live.ref = ref;
         live.gameId = existingId;
         live.enabled = true;
@@ -880,10 +871,16 @@
         }, { merge: true });
     
         attachLiveListener(ref);
-    
+        const idEl = $("#scoreboardId");
+        if (idEl) idEl.textContent = joinCode;
+        
+        // Update UI with join code
+        const codeEl = document.getElementById("currentCode");
+        if (codeEl) codeEl.textContent = joinCode;    
+        
         alert(`Live sharing resumed.\nShare this Scoreboard ID: ${joinCode}`);
       } else {
-        const gamesCol = fns.collection(db, "games");
+        const gamesCol = fns.collection(db, "guard");
         const initial = buildLivePayload();
     
         // Create new 4-digit join code
@@ -900,14 +897,19 @@
     
         attachLiveListener(ref);
     
+        const idEl = $("#scoreboardId");
+        if (idEl) idEl.textContent = joinCode;
+
+        // Update UI with join code
+        const codeEl = document.getElementById("currentCode");
+        if (codeEl) codeEl.textContent = joinCode;
+        
         alert(`Live sharing started.\nShare this Scoreboard ID: ${joinCode}`);
       }
     }
   };
 
-  // =========================
   // Join Session (by last 6 chars or your UI code)
-  // =========================
   function openJoinPopup() {
     $("#joinError")?.classList.add("hidden");
     $("#joinPopup")?.classList.remove("hidden");
@@ -931,7 +933,7 @@
       const { db, fns } = window.__live;
   
       // Query games by joinCode
-      const q = fns.query(fns.collection(db, "games"), fns.where("joinCode", "==", code));
+      const q = fns.query(fns.collection(db, "guard"), fns.where("joinCode", "==", code));
       const snap = await fns.getDocs(q);
   
       if (!snap.empty) {
@@ -940,12 +942,15 @@
   
         // Save, attach, and enable collaboration for this doc
         localStorage.setItem(LIVE_STORAGE_KEY, found);
-        const ref = fns.doc(db, "games", found);
+        const ref = fns.doc(db, "guard", found);
         live.ref = ref;
         live.gameId = found;
         live.enabled = true; // enable writes from this client too
         attachLiveListener(ref);
         closeJoinPopup();
+
+        const idEl = $("#scoreboardId");
+        if (idEl) idEl.textContent = code;
   
         // UI feedback
         const btn = $("#liveToggle");
@@ -954,6 +959,7 @@
           btn.classList.remove("bg-emerald-600");
           btn.classList.add("bg-red-600");
         }
+
       } else {
         if (errEl) {
           errEl.textContent = "Match not found! Please check if your ID is correct.";
@@ -969,16 +975,8 @@
     }
   }  
 
-  // =========================
   // Bootstrap
-  // =========================
   function bootstrap() {
-    // Restore local dark theme toggle icon
-    const darkPref = localStorage.getItem("wandollah.dark") === "1";
-    if (darkPref) document.documentElement.classList.add("dark");
-    const darkBtn = $("#darkToggle");
-    if (darkBtn) darkBtn.textContent = document.documentElement.classList.contains("dark") ? "☀️" : "🌙";
-
     // Initial state
     if (!restoreState()) {
       isFourPlayers = false;
@@ -1030,7 +1028,7 @@
       const { db, fns } = window.__live;
       const savedId = localStorage.getItem(LIVE_STORAGE_KEY);
       if (savedId) {
-        const ref = fns.doc(db, "games", savedId);
+        const ref = fns.doc(db, "guard", savedId);
         live.ref = ref;
         live.gameId = savedId;
         live.enabled = true; // allow collaborative edits
@@ -1041,9 +1039,47 @@
           btn.classList.remove("bg-emerald-600");
           btn.classList.add("bg-red-600");
         }
+
+        fns.getDoc(ref).then((snap) => {
+          if (snap.exists()) {
+            const joinCode = snap.data().joinCode;
+            const idEl = $("#scoreboardId");
+            if (idEl && joinCode) idEl.textContent = joinCode;
+          }
+        });        
       }
     }
+    // Enable copy-to-clipboard on scoreboard ID
+    initCopyScoreboardId();
   }
+
+  // Copy scoreboard ID to clipboard
+  function initCopyScoreboardId() {
+    const idEl = document.getElementById("scoreboardId");
+    if (!idEl) return;
+
+    idEl.addEventListener("click", async () => {
+      const text = idEl.textContent.trim();
+      if (!text || text === "----") return;
+
+      try {
+        await navigator.clipboard.writeText(text);
+
+        // Flash feedback
+        const original = idEl.textContent;
+        idEl.textContent = "Copied!";
+        idEl.style.color = "#16a34a"; // green
+        setTimeout(() => {
+          idEl.textContent = original;
+          idEl.style.color = "";
+        }, 1000);
+      } catch (err) {
+        console.error("Clipboard error:", err);
+        alert("Failed to copy scoreboard ID.");
+      }
+    });
+  }
+
   initZoomFeature("#playerContainer");
   document.addEventListener("DOMContentLoaded", bootstrap);
   
