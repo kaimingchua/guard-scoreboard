@@ -393,7 +393,7 @@ window.addEventListener("DOMContentLoaded", () => {
         const btn = e.target.closest("button[data-action]");
         if (!btn) return;
     
-        // Find the nearest player card by id (card-1, card-2, ...)
+        // Find the nearest player card by id
         const card = btn.closest('[id^="card-"]');
         const who = card ? Number(card.id.split("-")[1]) : 1;
     
