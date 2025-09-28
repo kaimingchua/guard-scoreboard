@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Tournament Live Score</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background: radial-gradient(circle at top left, #0f172a, #111827, #000);
+      color: #e5e7eb;
+      min-height: 100vh;
+      overflow-x: auto;
+      position: relative;
+      font-family: 'Bebas Neue', sans-serif;
+    }
+
+    @font-face {
+      font-family: 'Bebas Neue';
+      src: url('fonts/BebasNeue-Regular.otf') format('opentype');
+      font-weight: normal;
+      font-style: normal;
+    }
+
+    #bracketWrap { position: relative; }
+    #bracket { position: relative; min-height: 600px; }
+
+    .stage-header {
+      text-align: center;
+      margin-bottom: 0.5rem;
+      font-weight: 700;
+      font-size: 1rem;
+      color: #93c5fd;
+    }
+
+    .bracket-card {
+      background: rgba(30, 41, 59, 0.55);
+      border: 1px solid rgba(147,197,253,0.4);
+      border-radius: 0.75rem;
+      padding: 0.75rem 1rem;
+      width: 220px;
+      box-shadow: 0 0 14px rgba(59,130,246,0.12);
+      backdrop-filter: blur(12px);
+      position: absolute;
+      font-size: 0.9rem;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.5rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #cbd5e1;
+    }
+    .stage-tag { color: #94a3b8; }
+
+    .winner { font-weight: 700; color: #22c55e; }
+    .loser  { color: #6b7280; }
+
+    @keyframes pulse-red {
+      0%,100% { color:#ef4444; opacity:1; }
+      50% { color:#fca5a5; opacity:0.7; }
+    }
+    .live-label { animation: pulse-red 1.6s infinite; }
+    .ended-label { color: #9ca3af; }
+
+    @keyframes glowToGreen {
+      0%{color:#e5e7eb;} 
+      50%{color:#22c55e;} 
+      100%{color:#e5e7eb;}
+    }
+    .score-glow { animation: glowToGreen 1.2s ease-in-out; }
+
+    #bracketLines { position: absolute; inset: 0; pointer-events: none; z-index: 5; }
+
+    .flow-path-pending { stroke: #6b7280; stroke-width: 2.5; }
+    .flow-path-live {
+      stroke: url(#blueWhiteGradient);
+      stroke-width: 3;
+      filter: drop-shadow(0 0 3px #3b82f6) drop-shadow(0 0 6px #ffffff);
+      animation: pulseBlue 3s ease-in-out infinite;
+    }
+    .flow-path-ended {
+      stroke: url(#yellowGradient);
+      stroke-width: 3;
+      filter: drop-shadow(0 0 3px #fde047) drop-shadow(0 0 6px #facc15);
+      animation: pulseYellow 3s ease-in-out infinite;
+    }
+
+    @keyframes pulseBlue {
+      0%,100% { filter: drop-shadow(0 0 3px #3b82f6) drop-shadow(0 0 6px #ffffff); }
+      50% { filter: drop-shadow(0 0 5px #60a5fa) drop-shadow(0 0 10px #e0f2fe); }
+    }
+    @keyframes pulseYellow {
+      0%,100% { filter: drop-shadow(0 0 3px #fde047) drop-shadow(0 0 6px #facc15); }
+      50% { filter: drop-shadow(0 0 6px #fde047) drop-shadow(0 0 12px #facc15); }
+    }
+
+    /* Notice board */
+    .notice-board {
+      position: fixed;
+      top: 5rem;
+      right: 1rem;
+      width: 300px;
+      max-height: 70vh;
+      display: flex;
+      flex-direction: column;
+      background: rgba(30,41,59,0.65);
+      border: 1px solid rgba(147,197,253,0.4);
+      backdrop-filter: blur(12px);
+      border-radius: 0.75rem;
+      box-shadow: 0 0 20px rgba(59,130,246,0.15);
+      overflow: hidden;
+      z-index: 50;
+      font-size: 0.85rem;
+    }
+    .notice-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem 0.75rem;
+      font-weight: bold;
+      background: rgba(59,130,246,0.2);
+      cursor: pointer;
+    }
+    .notice-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0.5rem 0.75rem;
+    }
+    .notice-item {
+      margin-bottom: 0.75rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid rgba(148,163,184,0.2);
+    }
+    .notice-time {
+      font-size: 0.7rem;
+      color: #9ca3af;
+    }
+  </style>
+</head>
+<body>
+  <div class="max-w-7xl mx-auto p-4 relative z-10">
+    <h1 id="tournamentName" class="text-3xl font-bold mb-1 text-center text-blue-300"></h1>
+    <p id="tournamentDate" class="text-center text-slate-400 mb-10"></p>
+
+    <div id="bracketWrap" class="relative">
+      <svg id="bracketLines">
+        <defs>
+          <linearGradient id="blueWhiteGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#3b82f6"/>
+            <stop offset="100%" stop-color="#ffffff"/>
+          </linearGradient>
+          <linearGradient id="yellowGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#facc15"/>
+            <stop offset="100%" stop-color="#fde047"/>
+          </linearGradient>
+        </defs>
+      </svg>
+      <div id="bracket"></div>
+    </div>
+  </div>
+
+  <!-- Notice Board -->
+  <div id="noticeBoard" class="notice-board">
+    <div id="noticeHeader" class="notice-header">
+      <span>Notice Board</span>
+      <span id="toggleNotice">−</span>
+    </div>
+    <div id="noticeContent" class="notice-content"></div>
+  </div>
+
+  <!-- Ding sound -->
+  <audio id="dingSound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto"></audio>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, doc, onSnapshot, collection, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyC_jSYoQLlsYvyMkE4fZ4bHFz2fkE70shk",
+      authDomain: "guard-scoreboard.firebaseapp.com",
+      projectId: "guard-scoreboard",
+      storageBucket: "guard-scoreboard.appspot.com",
+      messagingSenderId: "491028228431",
+      appId: "1:491028228431:web:4c92700d264f5b1aae3d3a",
+      measurementId: "G-5Z28C6N29L"
+    };
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const params = new URLSearchParams(window.location.search);
+    const tournamentId = params.get("id");
+    if (!tournamentId) {
+      document.body.innerHTML = "<div class='p-10 text-center text-red-500 font-bold'>Missing tournament ID</div>";
+      throw new Error("Missing tournamentId");
+    }
+
+    // --- Notice Board ---
+    const noticeContent = document.getElementById("noticeContent");
+    const noticeHeader = document.getElementById("noticeHeader");
+    const toggleNotice = document.getElementById("toggleNotice");
+    const ding = document.getElementById("dingSound");
+    let collapsed = false;
+    let lastNoticeId = null;
+
+    noticeHeader.onclick = () => {
+      collapsed = !collapsed;
+      noticeContent.style.display = collapsed ? "none" : "block";
+      toggleNotice.textContent = collapsed ? "+" : "−";
+    };
+
+    onSnapshot(query(collection(db, "tournaments", tournamentId, "notices"), orderBy("createdAt","desc")), (snap) => {
+      noticeContent.innerHTML = "";
+      snap.forEach(docSnap => {
+        const n = docSnap.data();
+        const ts = n.createdAt?.toDate?.() || new Date();
+        const timeStr = ts.toLocaleDateString("en-GB") + " " + ts.toLocaleTimeString("en-GB");
+        const item = document.createElement("div");
+        item.className = "notice-item";
+        item.innerHTML = `<div>${n.message}</div><div class="notice-time">${timeStr}</div>`;
+        noticeContent.appendChild(item);
+      });
+
+      const first = snap.docs[0];
+      if (first && first.id !== lastNoticeId) {
+        lastNoticeId = first.id;
+        ding.play().catch(()=>{});
+      }
+    });
+
+    // --- Bracket Logic ---
+    function getRoundPrefix(totalRounds, roundIdx) {
+      if (totalRounds === 3) return ["Quarterfinals","Semifinals","Finals"][roundIdx];
+      if (totalRounds === 4) return ["R16","QF","SF","F"][roundIdx];
+      if (totalRounds === 5) return ["R32","R16","QF","SF","F"][roundIdx];
+      return `R${roundIdx+1}`;
+    }
+
+    let prevRounds = null;
+    let currentData = null;
+
+    function renderBracket(container, rounds, tData) {
+      container.innerHTML = "";
+      currentData = tData;
+      const totalRounds = rounds.length;
+      const colSpacing = 280;
+      const cardHeight = 100;
+      const firstRoundMatches = rounds[0]?.length || 1;
+
+      const rowSpacing = Math.max(140, 600 / firstRoundMatches);
+      const cardPositions = [];
+
+      rounds.forEach((round, roundIdx) => {
+        cardPositions[roundIdx] = [];
+
+        round.forEach((match, idx) => {
+          const card = document.createElement("div");
+          card.className = "bracket-card";
+          card.id = `card-${roundIdx}-${idx}`;
+
+          const left = roundIdx * colSpacing;
+          let top;
+          if (roundIdx === 0) {
+            top = idx * rowSpacing;
+          } else {
+            const feeder1 = cardPositions[roundIdx - 1][idx * 2];
+            const feeder2 = cardPositions[roundIdx - 1][idx * 2 + 1];
+            top = (feeder1 + feeder2) / 2;
+          }
+
+          card.style.left = `${left}px`;
+          card.style.top = `${top}px`;
+          cardPositions[roundIdx][idx] = top;
+
+          // --- Header ---
+          const header = document.createElement("div");
+          header.className = "card-header";
+          const leftTag = document.createElement("span");
+          leftTag.className = "stage-tag";
+          leftTag.textContent = `${getRoundPrefix(totalRounds, roundIdx)}${idx+1}`;
+          const rightTag = document.createElement("span");
+          rightTag.textContent = match?.scoreboardCode ? `ID: ${match.scoreboardCode}` : "";
+          header.appendChild(leftTag);
+          header.appendChild(rightTag);
+          card.appendChild(header);
+
+          // --- Players ---
+          const decided = !!match?.winner;
+          const p1Win = decided && match.winner === "p1";
+          const p2Win = decided && match.winner === "p2";
+
+          const prevScore1 = prevRounds?.[roundIdx]?.[idx]?.score1 ?? null;
+          const prevScore2 = prevRounds?.[roundIdx]?.[idx]?.score2 ?? null;
+
+          const p1 = document.createElement("div");
+          p1.className = `flex justify-between ${p1Win ? "winner" : decided ? "loser" : ""}`;
+          p1.innerHTML = `<span>${match.p1 ?? "TBD"}</span><span>${match.score1 ?? 0}</span>`;
+          if (prevScore1 !== null && prevScore1 !== match.score1) p1.classList.add("score-glow");
+
+          const p2 = document.createElement("div");
+          p2.className = `flex justify-between ${p2Win ? "winner" : decided ? "loser" : ""}`;
+          p2.innerHTML = `<span>${match.p2 ?? "TBD"}</span><span>${match.score2 ?? 0}</span>`;
+          if (prevScore2 !== null && prevScore2 !== match.score2) p2.classList.add("score-glow");
+
+          card.appendChild(p1);
+          card.appendChild(p2);
+
+          container.appendChild(card);
+        });
+      });
+
+      prevRounds = rounds.map(r => r.map(m => ({ score1: m.score1, score2: m.score2 })));
+      requestAnimationFrame(() => drawConnectors(cardPositions, colSpacing, cardHeight));
+    }
+
+    function drawConnectors(cardPositions, colSpacing, cardHeight) {
+      const svg = document.getElementById("bracketLines");
+      const wrap = document.getElementById("bracketWrap");
+
+      svg.setAttribute("width", wrap.scrollWidth);
+      svg.setAttribute("height", wrap.scrollHeight);
+      svg.innerHTML = document.querySelector("#bracketLines defs").outerHTML;
+
+      for (let r = 0; r < cardPositions.length - 1; r++) {
+        for (let i = 0; i < cardPositions[r].length; i += 2) {
+          const targetIdx = Math.floor(i / 2);
+          const x2 = (r + 1) * colSpacing;
+          const y2 = cardPositions[r + 1][targetIdx] + cardHeight / 2;
+
+          [i, i + 1].forEach((j) => {
+            if (j >= cardPositions[r].length) return;
+            const x1 = r * colSpacing + 220;
+            const y1 = cardPositions[r][j] + cardHeight / 2;
+            const midX = (x1 + x2) / 2;
+
+            const path = `M${x1},${y1} H${midX} V${y2} H${x2}`;
+            const el = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            el.setAttribute("d", path);
+            el.setAttribute("fill", "none");
+
+            const match = currentData?.rounds?.[`round${r + 1}`]?.[j];
+            if (match?.status === "live") el.classList.add("flow-path-live");
+            else if (match?.status === "ended") el.classList.add("flow-path-ended");
+            else el.classList.add("flow-path-pending");
+
+            svg.appendChild(el);
+          });
+        }
+      }
+    }
+
+    onSnapshot(doc(db,"tournaments",tournamentId),(snap)=>{
+      if(!snap.exists())return;
+      const tData = snap.data();
+      document.getElementById("tournamentName").textContent = tData.name||"Tournament";
+      document.getElementById("tournamentDate").textContent = tData.date||"";
+
+      const roundsArray = Object.keys(tData.rounds||{})
+        .sort((a,b)=>parseInt(a.replace(/\D+/g,""))-parseInt(b.replace(/\D+/g,"")))
+        .map(k => Array.isArray(tData.rounds[k])? tData.rounds[k]: Object.values(tData.rounds[k]));
+      renderBracket(document.getElementById("bracket"),roundsArray,tData);
+    });
+
+    window.addEventListener("resize",()=>requestAnimationFrame(()=>drawConnectors([],280,100)));
+  </script>
+</body>
+</html>

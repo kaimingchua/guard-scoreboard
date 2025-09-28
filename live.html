@@ -6,31 +6,88 @@
   <title>Guard Live Games</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    @keyframes glowToGreen {
-      0%   { color: #000000; }
-      50%  { color: #16a34a; }
-      100% { color: #000000; }
+    body {
+      background: radial-gradient(circle at top left, #0f172a, #111827, #000);
+      color: #e5e7eb;
+      min-height: 100vh;
+      font-family: 'Bebas Neue', sans-serif;
     }
+
+    @font-face {
+      font-family: 'Bebas Neue';
+      src: url('fonts/BebasNeue-Regular.otf') format('opentype');
+      font-weight: normal;
+      font-style: normal;
+    }
+
+    /* Glow animations for score changes */
+    @keyframes glowToGreen {
+      0%   { color: #fff; text-shadow: none; }
+      50%  { 
+        color: #22c55e; 
+        text-shadow: 
+          0 0 8px rgba(34,197,94,0.8),
+          0 0 16px rgba(34,197,94,0.7),
+          0 0 24px rgba(34,197,94,0.6);
+      }
+      100% { color: #fff; text-shadow: none; }
+    }
+
     .score-glow {
-      animation: glowToGreen 1.2s ease-in-out;
+      animation: glowToGreen 1.5s ease-in-out;
+    }
+
+    /* Glass effect */
+    .glass-card {
+      background: rgba(30,41,59,0.55);
+      border: 1px solid rgba(147,197,253,0.4);
+      backdrop-filter: blur(12px);
+      border-radius: 0.75rem;
+      box-shadow: 0 0 14px rgba(59,130,246,0.12);
+      padding: 1rem;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .glass-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 0 20px rgba(59,130,246,0.25);
+    }
+
+    h1, h2 {
+      font-family: 'Bebas Neue', sans-serif;
+      color: #93c5fd;
+      letter-spacing: 0.05em;
+    }
+
+    /* Score styling */
+    .score-text {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2rem;
+      color: #fff;
+      line-height: 1.1;
+    }
+
+    /* Analytics small text */
+    .analytics-text {
+      font-size: 0.75rem;
+      color: #cbd5e1;
     }
   </style>
 </head>
-<body class="bg-stone-50 text-stone-900">
+<body>
   <div class="max-w-6xl mx-auto p-4">
-    <h1 class="text-2xl font-extrabold mb-4">Guard Live Games</h1>
+    <h1 class="text-4xl font-extrabold mb-6">Guard Live Games</h1>
 
     <!-- Ongoing Games -->
-    <h2 class="text-lg font-bold mb-2">Ongoing Matches</h2>
-    <div id="games" class="grid gap-4 md:grid-cols-2"></div>
-    <p id="empty" class="text-sm text-stone-500 hidden">
+    <h2 class="text-2xl font-bold mb-4">Ongoing Matches</h2>
+    <div id="games" class="grid gap-6 md:grid-cols-2"></div>
+    <p id="empty" class="text-sm text-gray-400 hidden">
       No live games yet. Ask someone to turn on “Live score sharing”.
     </p>
 
     <!-- Past Matches -->
-    <h2 class="text-lg font-bold mt-8 mb-2">Past Matches</h2>
-    <div id="pastGames" class="grid gap-4 md:grid-cols-2"></div>
-    <p id="pastEmpty" class="text-sm text-stone-500 hidden">No past matches yet.</p>
+    <h2 class="text-2xl font-bold mt-10 mb-4">Past Matches</h2>
+    <div id="pastGames" class="grid gap-6 md:grid-cols-2"></div>
+    <p id="pastEmpty" class="text-sm text-gray-400 hidden">No past matches yet.</p>
   </div>
 
   <script type="module">
@@ -58,7 +115,6 @@
     const emptyMsg  = document.getElementById("empty");
     const pastEmpty = document.getElementById("pastEmpty");
 
-    // Cache: last scores per game to avoid constant animation
     const lastScores = new Map();     
     const lastHashes = new Map();     
 
@@ -77,8 +133,7 @@
       return stringify(obj);
     }
 
-    // Subscribe
-    const q = query(collection(db, "games"), orderBy("updatedAt", "desc"));
+    const q = query(collection(db, "guard"), orderBy("updatedAt", "desc"));
     onSnapshot(q, (snap) => {
       const liveGames = [];
       const pastGames = [];
@@ -104,14 +159,11 @@
         } else {
           const codeEl = document.getElementById("code-" + id);
           if (codeEl) codeEl.textContent = g.joinCode ?? "----";
-          const hashEl = document.getElementById("hash-" + id);
-          if (hashEl) hashEl.textContent = "#" + id.slice(-6);
         }
         updateScores(g);
         updateAnalytics(g);
       }
 
-      // Remove cards that are no longer live
       Array.from(gamesWrap.querySelectorAll("[data-card]")).forEach(el => {
         if (!seen.has(el.dataset.card)) el.remove();
       });
@@ -138,14 +190,14 @@
 
       const hashNow = stableStringify({scores, players});
       const prevHash = lastHashes.get(g.id);
-      if (prevHash === hashNow) return; // no change
+      if (prevHash === hashNow) return;
 
-      let html = '<div class="flex justify-between gap-4">';
+      let html = '<div class="flex justify-between gap-6">';
       for (const pid of pids) {
         html += `
           <div class="flex-1 text-center">
-            <div class="font-bold">${players[pid] || ("P" + pid)}</div>
-            <div id="score-${g.id}-${pid}" class="text-2xl md:text-3xl">${scores[pid] ?? 0}</div>
+            <div class="text-blue-300 text-xl mb-1">${players[pid] || ("P" + pid)}</div>
+            <div id="score-${g.id}-${pid}" class="score-text text-3xl md:text-4xl font-extrabold">${scores[pid] ?? 0}</div>
           </div>
         `;
       }
@@ -179,9 +231,9 @@
           const v = counts[pid] || 0;
           const pct = Math.round((v / max) * 100);
           return `
-            <div class="flex-1 text-center">
-              <div class="text-[11px] mb-0.5">${players[pid]}</div>
-              <div class="bg-stone-100 rounded overflow-hidden h-3 mb-0.5">
+            <div class="flex-1 text-center analytics-text">
+              <div class="mb-0.5">${players[pid]}</div>
+              <div class="bg-gray-700 rounded overflow-hidden h-3 mb-0.5">
                 <div class="h-3" style="width:${pct}%; background:${color}"></div>
               </div>
               <div class="text-[10px]">(${v})</div>
@@ -189,7 +241,7 @@
         }).join("");
         return `
           <div class="mb-3">
-            <div class="font-semibold text-xs mb-1">${label}:</div>
+            <div class="font-semibold text-xs mb-1 text-gray-300">${label}:</div>
             <div class="flex gap-2">${bars}</div>
           </div>`;
       };
@@ -209,19 +261,19 @@
       const code = g.joinCode ?? "----";
       const hash = "#" + g.id.slice(-6);
       return `
-        <div class="rounded-xl bg-white shadow p-4" data-card="${g.id}" id="card-${g.id}">
-          <div class="flex items-center justify-between mb-2">
-            <div class="font-bold">${g.title || "Guard Scoreboard"} (${statusText})</div>
-            <div class="text-right text-xs text-stone-500">
-              <div>Scoreboard ID: <span id="code-${g.id}" class="font-semibold text-stone-700">${code}</span></div>
-              <div>Legacy: <span id="hash-${g.id}" class="font-mono">${hash}</span></div>
+        <div class="glass-card" data-card="${g.id}" id="card-${g.id}">
+          <div class="flex items-center justify-between mb-3">
+            <div class="text-blue-300 font-bold text-lg">${g.title || "Guard Scoreboard"} (${statusText})</div>
+            <div class="text-right text-xs text-gray-400">
+              <div>Scoreboard ID: <span id="code-${g.id}" class="font-semibold text-white">${code}</span></div>
+              <div>Legacy: <span id="hash-${g.id}" class="font-mono text-gray-300">${hash}</span></div>
             </div>
           </div>
 
-          <div class="text-lg font-extrabold tabular-nums" id="scores-${g.id}"></div>
+          <div class="tabular-nums" id="scores-${g.id}"></div>
 
           <!-- Per-game analytics -->
-          <div id="analytics-${g.id}" class="mt-4 text-xs"></div>
+          <div id="analytics-${g.id}" class="mt-4"></div>
         </div>`;
     }
   </script>

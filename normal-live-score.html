@@ -6,37 +6,69 @@
   <title>Normal Live Games</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    @keyframes glowToGreen {
-      0%   { color: #000000; }
-      50%  { color: #16a34a; }
-      100% { color: #000000; }
+    /* Font */
+    @font-face {
+      font-family: 'Bebas Neue';
+      src: url('fonts/BebasNeue-Regular.otf') format('opentype');
+      font-weight: normal;
+      font-style: normal;
     }
-    .score-glow {
-      animation: glowToGreen 1.5s ease-in-out;
+    body {
+      background: radial-gradient(circle at top left, #0f172a, #111827, #000);
+      color: #e5e7eb;
+      font-family: 'Bebas Neue', sans-serif;
     }
+
+    /* Glass effect */
+    .glass-card {
+      background: rgba(30,41,59,0.55);
+      border: 1px solid rgba(147,197,253,0.4);
+      backdrop-filter: blur(12px);
+      border-radius: 0.75rem;
+      box-shadow: 0 0 14px rgba(59,130,246,0.12);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .glass-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 0 20px rgba(59,130,246,0.25);
+    }
+
+    /* Score glow */
+    @keyframes scoreGlow {
+      0% { color: #fff; text-shadow: none; }
+      50% {
+        color: #22c55e;
+        text-shadow:
+          0 0 8px rgba(34,197,94,0.8),
+          0 0 16px rgba(34,197,94,0.7),
+          0 0 24px rgba(34,197,94,0.6);
+      }
+      100% { color: #fff; text-shadow: none; }
+    }
+    .score-glow { animation: scoreGlow 1.2s ease-in-out; }
   </style>
 </head>
-<body class="bg-stone-50 text-stone-900">
-  <div class="max-w-5xl mx-auto p-4">
-    <h1 class="text-2xl font-extrabold mb-4">Normal Live Games</h1>
+<body>
+  <div class="max-w-5xl mx-auto p-6">
+    <h1 class="text-3xl font-extrabold mb-6 text-blue-300">Normal Live Games</h1>
 
     <!-- Overall Team Score -->
     <div id="overallScore"
-      class="mb-6 text-2xl font-bold text-center text-blue-700">
+      class="mb-8 text-4xl font-bold text-center text-white">
       Overall Team Score: -
     </div>
 
     <!-- Ongoing Games -->
-    <h2 class="text-lg font-bold mb-2">Ongoing Matches</h2>
-    <div id="games" class="grid gap-4 md:grid-cols-2"></div>
-    <p id="empty" class="text-sm text-stone-500 hidden">
+    <h2 class="text-xl font-bold mb-3 text-emerald-400">Ongoing Matches</h2>
+    <div id="games" class="grid gap-6 md:grid-cols-2"></div>
+    <p id="empty" class="text-sm text-gray-400 hidden">
       No live games yet. Ask someone to turn on “Live score sharing”.
     </p>
 
     <!-- Past Matches -->
-    <h2 class="text-lg font-bold mt-8 mb-2">Past Matches</h2>
-    <div id="pastGames" class="grid gap-4 md:grid-cols-2"></div>
-    <p id="pastEmpty" class="text-sm text-stone-500 hidden">No past matches yet.</p>
+    <h2 class="text-xl font-bold mt-10 mb-3 text-gray-300">Past Matches</h2>
+    <div id="pastGames" class="grid gap-6 md:grid-cols-2"></div>
+    <p id="pastEmpty" class="text-sm text-gray-400 hidden">No past matches yet.</p>
   </div>
 
   <script type="module">
@@ -71,7 +103,7 @@
       el.classList.add("score-glow");
     }
 
-    const q = query(collection(db, "normal-games"), orderBy("updatedAt", "desc"));
+    const q = query(collection(db, "normal-match"), orderBy("updatedAt", "desc"));
     onSnapshot(q, (snap) => {
       const liveGames = [];
       const pastGames = [];
@@ -117,19 +149,19 @@
       let p1Classes = "font-bold";
       let p2Classes = "font-bold";
       if (isPast) {
-        if (s1 > s2) p1Classes += " text-green-600";
-        else if (s2 > s1) p2Classes += " text-green-600";
+        if (s1 > s2) p1Classes += " text-green-400";
+        else if (s2 > s1) p2Classes += " text-green-400";
       }
 
       container.innerHTML = `
         <div class="flex justify-between gap-4">
           <div class="flex-1 text-center">
-            <div class="${p1Classes}">${p1}</div>
-            <div id="score-${g.id}-1" class="text-xl">${s1}</div>
+            <div class="${p1Classes} text-lg">${p1}</div>
+            <div id="score-${g.id}-1" class="text-2xl md:text-3xl font-extrabold text-white">${s1}</div>
           </div>
           <div class="flex-1 text-center">
-            <div class="${p2Classes}">${p2}</div>
-            <div id="score-${g.id}-2" class="text-xl">${s2}</div>
+            <div class="${p2Classes} text-lg">${p2}</div>
+            <div id="score-${g.id}-2" class="text-2xl md:text-3xl font-extrabold text-white">${s2}</div>
           </div>
         </div>
       `;
@@ -145,8 +177,6 @@
 
       if (pastGames.length === 0) {
         overallEl.textContent = "Overall Team Score: -";
-        overallEl.classList.remove("text-4xl");
-        overallEl.classList.add("text-2xl");
         return;
       }
 
@@ -163,31 +193,33 @@
 
       overallEl.textContent =
         `${teamNames[1]}   ${teamWins[1]}  -  ${teamWins[2]}   ${teamNames[2]}`;
-
-      overallEl.classList.remove("text-2xl");
-      overallEl.classList.add("text-4xl");
     }
 
     function updateAnalytics(g) {
       const players = g.players || {};
       const pids = Object.keys(players).map(Number).sort((a,b)=>a-b);
       const stats = g.actionStats || {};
-      const foul = stats.foul || {};
+      const foul = (stats.foul || {});
 
       const wrap = document.getElementById("foul-" + g.id);
       if (!wrap) return;
 
+      let max = 0;
+      pids.forEach(pid => { max = Math.max(max, foul[pid] || 0); });
+      if (max === 0) max = 1;
+
       wrap.innerHTML = `
-        <div class="mb-1 font-semibold text-xs">Fouls:</div>
-        <div class="flex gap-2">
+        <div class="mb-1 font-semibold text-xs text-gray-300">Fouls:</div>
+        <div class="flex gap-2 items-end">
           ${pids.map(pid => {
             const v = foul[pid] || 0;
+            const pct = Math.round((v / max) * 100);
             return `
               <div class="flex-1 text-center">
-                <div class="bg-stone-100 h-3 rounded mb-1 relative">
-                  <div class="bg-red-500 h-3 rounded" style="width:${v * 20}%"></div>
+                <div class="bg-gray-700 h-3 rounded mb-1 relative overflow-hidden">
+                  <div class="h-3 rounded" style="width:${pct}%; background-color:#facc15;"></div>
                 </div>
-                <div class="text-[11px]">${players[pid]} (${v})</div>
+                <div class="text-[11px] text-gray-200">${players[pid] || ("P"+pid)} (${v})</div>
               </div>
             `;
           }).join("")}
@@ -198,15 +230,13 @@
     function gameCardHTML(g, isPast) {
       const statusText = isPast ? "Final" : "Live";
       return `
-        <div class="rounded-xl bg-white shadow p-4">
-          <div class="flex items-center justify-between mb-2">
-            <div class="font-bold">${g.title || "Normal Scoreboard"} (${statusText})</div>
-            <div class="text-xs text-stone-500">#${g.joinCode ?? g.id.slice(-6)}</div>
+        <div class="glass-card p-4">
+          <div class="flex items-center justify-between mb-3">
+            <div class="font-bold text-blue-300">${g.title || "Normal Scoreboard"} (${statusText})</div>
+            <div class="text-xs text-gray-400">ID: ${g.scoreboardCode ?? "----"}</div>
           </div>
           <div class="text-lg font-extrabold tabular-nums" id="scores-${g.id}"></div>
-
-          <!-- Foul Analytics -->
-          <div id="foul-${g.id}" class="mt-3"></div>
+          <div id="foul-${g.id}" class="mt-4"></div>
         </div>`;
     }
   </script>
