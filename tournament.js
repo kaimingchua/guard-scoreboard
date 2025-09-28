@@ -1,4 +1,3 @@
-// tournament.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getFirestore,
@@ -15,7 +14,7 @@ import {
   getDocs,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// --- Firebase ---
+// Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyC_jSYoQLlsYvyMkE4fZ4bHFz2fkE70shk",
   authDomain: "guard-scoreboard.firebaseapp.com",
@@ -29,12 +28,11 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// -------------------------------
 // Utilities
-// -------------------------------
 function generateScoreboardCode() {
   return Math.floor(1000 + Math.random() * 9000).toString();
 }
+
 function shuffle(array) {
   for (let i = array.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -42,18 +40,21 @@ function shuffle(array) {
   }
   return array;
 }
+
 function getStageName(roundIdx, totalRounds) {
   if (totalRounds === 3) return ["Quarterfinals", "Semifinals", "Finals"][roundIdx];
   if (totalRounds === 4) return ["Round of 16", "Quarterfinals", "Semifinals", "Finals"][roundIdx];
   if (totalRounds === 5) return ["Round of 32", "Round of 16", "Quarterfinals", "Semifinals", "Finals"][roundIdx];
   return `Round ${roundIdx + 1}`;
 }
+
 function getRoundPrefix(totalRounds, roundIdx) {
   if (totalRounds === 5) return ["R32", "R16", "QF", "SF", "F"][roundIdx];
   if (totalRounds === 4) return ["R16", "QF", "SF", "F"][roundIdx];
   if (totalRounds === 3) return ["QF", "SF", "F"][roundIdx];
   return `R${roundIdx + 1}`;
 }
+
 function normalizeRounds(roundsObjOrArray) {
   if (!roundsObjOrArray) return [];
   if (Array.isArray(roundsObjOrArray)) return roundsObjOrArray;
@@ -68,6 +69,7 @@ function normalizeRounds(roundsObjOrArray) {
     return Object.values(val);
   });
 }
+
 function toSameShape(originalRound, roundArr) {
   if (Array.isArray(originalRound)) return roundArr;
   const out = {};
@@ -75,9 +77,7 @@ function toSameShape(originalRound, roundArr) {
   return out;
 }
 
-// -------------------------------
 // Bracket generation
-// -------------------------------
 function generateBracket(players, size) {
   const rounds = Math.log2(size);
   const matchesPerRound = [];
@@ -116,9 +116,7 @@ function generateBracket(players, size) {
   return matchesPerRound;
 }
 
-// -------------------------------
 // Winner advancement
-// -------------------------------
 async function advanceWinnerIfReady(tournamentId, tData, matchDoc) {
   try {
     if (!tData?.rounds) return;
@@ -198,9 +196,7 @@ async function advanceWinnerIfReady(tournamentId, tData, matchDoc) {
   }
 }
 
-// -------------------------------
 // Rendering
-// -------------------------------
 let currentData = null;
 
 function renderBracket(container, roundsArray, tData, tournamentId) {
@@ -219,7 +215,7 @@ function renderBracket(container, roundsArray, tData, tournamentId) {
 
   // --- Header row (stage + race to) ---
   const headerRow = document.createElement("div");
-  headerRow.className = "flex items-start gap-[180px] mb-6"; // gap ~ colSpacing - cardWidth
+  headerRow.className = "flex items-start gap-[180px] mb-6";
 
   for (let r = 0; r < totalRounds; r++) {
     const roundKey = `round${r + 1}`;
@@ -247,7 +243,7 @@ function renderBracket(container, roundsArray, tData, tournamentId) {
   }
   container.appendChild(headerRow);
 
-  // --- Absolute-positioned bracket cards ---
+  // Absolute-positioned bracket cards
   const bracketLayer = document.createElement("div");
   bracketLayer.className = "relative";
   container.appendChild(bracketLayer);
@@ -276,7 +272,7 @@ function renderBracket(container, roundsArray, tData, tournamentId) {
       card.style.top  = `${top}px`;
       cardPositions[roundIdx][idx] = top;
 
-      // --- Header (round tag + scoreboard ID) ---
+      // Header (round tag + scoreboard ID)
       const header = document.createElement("div");
       header.className = "card-header";
       const leftTag = document.createElement("span");
@@ -288,7 +284,7 @@ function renderBracket(container, roundsArray, tData, tournamentId) {
       header.appendChild(rightTag);
       card.appendChild(header);
 
-      // --- Players ---
+      // Players
       const decided = !!match?.winner;
       const p1Win = decided && match.winner === "p1";
       const p2Win = decided && match.winner === "p2";
@@ -308,15 +304,15 @@ function renderBracket(container, roundsArray, tData, tournamentId) {
     });
   });
 
-  // draw connectors
+  // Draw connectors
   requestAnimationFrame(() => {
     drawConnectors(cardPositions, colSpacing, cardWidth, cardHeight);
   
     const bracketWrap = document.getElementById("bracketWrap");
   
     // Fit into viewport dimensions
-    const viewportHeight = window.innerHeight - 220; // padding for header + controls
-    const viewportWidth  = window.innerWidth - 80;   // padding for controls
+    const viewportHeight = window.innerHeight - 220;
+    const viewportWidth  = window.innerWidth - 80;
     const bracketHeight  = bracketWrap.scrollHeight;
     const bracketWidth   = bracketWrap.scrollWidth;
   
@@ -324,14 +320,14 @@ function renderBracket(container, roundsArray, tData, tournamentId) {
     if (bracketHeight > viewportHeight || bracketWidth > viewportWidth) {
       const scaleH = viewportHeight / bracketHeight;
       const scaleW = viewportWidth / bracketWidth;
-      scale = Math.min(scaleH, scaleW); // choose whichever fits tighter
+      scale = Math.min(scaleH, scaleW);
     }
   
     bracketWrap.style.transform = `scale(${scale})`;
     bracketWrap.style.transformOrigin = "top left";
   });
 
-  // attach listeners for Race To
+  // Attach listeners for Race To
   container.querySelectorAll(".race-input").forEach((input) => {
     input.addEventListener("change", async (e) => {
       const val = parseInt(e.target.value, 10);
@@ -357,33 +353,24 @@ function drawConnectors(cardPositions, colSpacing, cardWidth, cardHeight) {
   svg.setAttribute("width", wrap.scrollWidth);
   svg.setAttribute("height", wrap.scrollHeight);
 
-  // Preserve any <defs> that were placed in the SVG (gradients, etc.)
   const defs = svg.querySelector("defs");
   const defsHTML = defs ? defs.outerHTML : "";
   svg.innerHTML = defsHTML;
 
-  // Push the RIGHT end further to the right while keeping LEFT end fixed
-  // Increase this number to push more to the right
-  const PUSH_RIGHT = 15; // <- adjust if you want a bit more/less nudge
+  const PUSH_RIGHT = 15;
 
   for (let r = 0; r < cardPositions.length - 1; r++) {
     for (let i = 0; i < cardPositions[r].length; i += 2) {
       const targetIdx = Math.floor(i / 2);
-
-      // end (x2,y2): at next round column, nudged to the right
       const x2 = (r + 1) * colSpacing + PUSH_RIGHT;
       const y2 = cardPositions[r + 1][targetIdx] + cardHeight / 2;
 
-      // connect pair i and i+1 into targetIdx
       [i, i + 1].forEach((j) => {
         if (j >= cardPositions[r].length) return;
 
-        // start (x1,y1): right edge of current card — DO NOT MOVE THIS
         const LEFT_OFFSET = 20; 
         const x1 = r * colSpacing + cardWidth + LEFT_OFFSET;
         const y1 = cardPositions[r][j] + cardHeight / 2;
-
-        // midpoint x to create a right-angle elbow path
         const midX = (x1 + x2) / 2;
 
         const pathData = `M${x1},${y1} H${midX} V${y2} H${x2}`;
@@ -403,9 +390,7 @@ function drawConnectors(cardPositions, colSpacing, cardWidth, cardHeight) {
   }
 }
 
-// -------------------------------
 // Main flow
-// -------------------------------
 document.addEventListener("DOMContentLoaded", () => {
   const genBtn = document.getElementById("generate");
   const endBtn = document.getElementById("endTournament");
@@ -443,7 +428,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!snap.exists()) return;
       const tData = snap.data();
 
-      // render using absolute positioning and draw connectors
+      // Render using absolute positioning and draw connectors
       renderBracket(bracketEl, normalizeRounds(tData.rounds), tData, tournamentId);
 
       // End button
@@ -532,7 +517,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
-    // React to scoreboard score/status updates -> propagate winners
+    // React to scoreboard score/status updates
     if (unsubscribeMatches) unsubscribeMatches();
     const qMatches = query(
       collection(db, "tournament-match"),
