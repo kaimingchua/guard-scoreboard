@@ -24,7 +24,7 @@
     Chart.defaults.borderColor = "rgba(255,255,255,0.1)";
   }
 
-  // Live / Collaboration
+  // Live score collab
   const live = { enabled: false, gameId: null, ref: null, unsub: null };
   const LIVE_STORAGE_KEY = "guard.liveGameId";
 
@@ -62,8 +62,6 @@
   const WIN  = () => getRate("#winRate");
   const FOUL = () => getRate("#foulRate");
   const BC   = () => getRate("#bcRate");
-
-  // const axisColor = () => (document.documentElement.classList.contains("dark") ? "#fff" : "#000");
   const currentPlayerIds = () => Object.keys(scores).map(k => Number(k));
   const playerLabels = () => currentPlayerIds().map(pid => getPlayerName(pid));
 
@@ -234,12 +232,12 @@
   
       // Pulse opacity on change
       el.classList.remove("opacity-70");
-      void el.offsetWidth; // reflow to restart transition
+      void el.offsetWidth;
       el.classList.add("opacity-70");
   
       // Reset glow classes
       el.classList.remove("score-glow-green", "score-glow-red");
-      void el.offsetWidth; // force reflow so animation can retrigger
+      void el.offsetWidth;
   
       if (after > before) {
         el.classList.add("score-glow-green");
@@ -253,7 +251,7 @@
     updateSpecialActionButtons();
     save();
   
-    // Only trigger sync if we're not applying a remote state
+    // Only trigger sync when not applying a remote state
     if (!suppressSync) {
       onStateChanged();
     }
@@ -561,7 +559,6 @@
 
   function applyRemoteState(data) {
     if (!data) return;
-    // Ignore our own writes
     if (data.lastWriteBy && data.lastWriteBy === live.clientId) return;
 
     // Build normalized "meaningful" snapshot
@@ -680,7 +677,6 @@
   }
 
   function attachLiveListener(ref) {
-    // Clean up previous
     if (live.unsub) { try { live.unsub(); } catch {} live.unsub = null; }
 
     const { fns } = window.__live;
@@ -727,7 +723,7 @@
     const futureCount = isFourPlayers ? 3 : 4;
     if (!confirm(`Switch to ${futureCount} players?`)) return;
 
-    // Preserve names before we toggle
+    // Preserve names before toggle
     const prevPlayers = {};
     (isFourPlayers ? [1,2,3,4] : [1,2,3]).forEach(i => prevPlayers[i] = getPlayerName(i));
 
@@ -861,7 +857,7 @@
         const snap = await fns.getDoc(ref);
         let joinCode = snap.exists() ? snap.data().joinCode : null;
         if (!joinCode) {
-          joinCode = Math.floor(1000 + Math.random() * 9000).toString(); // new 4-digit
+          joinCode = Math.floor(1000 + Math.random() * 9000).toString();
         }
     
         await fns.setDoc(ref, { 

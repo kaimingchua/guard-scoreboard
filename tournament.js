@@ -35,6 +35,7 @@ const db = getFirestore(app);
 function generateScoreboardCode() {
   return Math.floor(1000 + Math.random() * 9000).toString();
 }
+
 function shuffle(array) {
   for (let i = array.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -42,18 +43,21 @@ function shuffle(array) {
   }
   return array;
 }
+
 function getStageName(roundIdx, totalRounds) {
   if (totalRounds === 3) return ["Quarterfinals", "Semifinals", "Finals"][roundIdx];
   if (totalRounds === 4) return ["Round of 16", "Quarterfinals", "Semifinals", "Finals"][roundIdx];
   if (totalRounds === 5) return ["Round of 32", "Round of 16", "Quarterfinals", "Semifinals", "Finals"][roundIdx];
   return `Round ${roundIdx + 1}`;
 }
+
 function getRoundPrefix(totalRounds, roundIdx) {
   if (totalRounds === 5) return ["R32", "R16", "QF", "SF", "F"][roundIdx];
   if (totalRounds === 4) return ["R16", "QF", "SF", "F"][roundIdx];
   if (totalRounds === 3) return ["QF", "SF", "F"][roundIdx];
   return `R${roundIdx + 1}`;
 }
+
 function normalizeRounds(roundsObjOrArray) {
   if (!roundsObjOrArray) return [];
   if (Array.isArray(roundsObjOrArray)) return roundsObjOrArray;
@@ -68,6 +72,7 @@ function normalizeRounds(roundsObjOrArray) {
     return Object.values(val);
   });
 }
+
 function toSameShape(originalRound, roundArr) {
   if (Array.isArray(originalRound)) return roundArr;
   const out = {};
@@ -218,7 +223,7 @@ function renderBracket(container, roundsArray, tData, tournamentId) {
 
   // --- HEADER ROW (stage + race to) ---
   const headerRow = document.createElement("div");
-  headerRow.className = "flex items-start gap-[180px] mb-6"; // gap ~ colSpacing - cardWidth
+  headerRow.className = "flex items-start gap-[180px] mb-6";
 
   for (let r = 0; r < totalRounds; r++) {
     const roundKey = `round${r + 1}`;
@@ -286,7 +291,7 @@ function renderBracket(container, roundsArray, tData, tournamentId) {
       header.appendChild(rightTag);
       card.appendChild(header);
 
-      // --- Players ---
+      // Players
       const decided = !!match?.winner;
       const p1Win = decided && match.winner === "p1";
       const p2Win = decided && match.winner === "p2";
@@ -429,7 +434,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!snap.exists()) return;
       const tData = snap.data();
 
-      // render using absolute positioning and draw connectors
+      // Render using absolute positioning and draw connectors
       renderBracket(bracketEl, normalizeRounds(tData.rounds), tData, tournamentId);
 
     // --- NOTICE BOARD ---
@@ -565,7 +570,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
-    // React to scoreboard score/status updates -> propagate winners
+    // React to scoreboard score/status updates
     if (unsubscribeMatches) unsubscribeMatches();
     const qMatches = query(
       collection(db, "tournament-match"),
