@@ -296,7 +296,7 @@
         deleteBtn.classList.remove("hidden");
         deleteBtn.onclick = () => deleteTournament(tournamentId);
 
-        const liveUrl = `${window.location.origin}/tournament-live.html?id=${tournamentId}`;
+        const liveUrl = `${window.location.origin}/guard-scoreboard/tournament-live.html?id=${tournamentId}`;
         shareBtn.classList.remove("hidden");
         shareBtn.onclick = async () => {
             try {
