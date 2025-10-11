@@ -97,7 +97,7 @@
       50% { filter: drop-shadow(0 0 6px #fde047) drop-shadow(0 0 12px #facc15); }
     }
 
-    /* Notice board */
+    /* NOTICE BOARD */
     .notice-board {
       position: fixed;
       top: 5rem;
@@ -162,7 +162,7 @@
     </div>
   </div>
 
-  <!-- Notice Board -->
+  <!-- NOTICE BOARD -->
   <div id="noticeBoard" class="notice-board">
     <div id="noticeHeader" class="notice-header">
       <span>Notice Board</span>
@@ -171,7 +171,7 @@
     <div id="noticeContent" class="notice-content"></div>
   </div>
 
-  <!-- Ding sound -->
+  <!-- NOTIFICATION BEEP -->
   <audio id="dingSound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto"></audio>
 
   <script type="module">
@@ -197,7 +197,7 @@
       throw new Error("Missing tournamentId");
     }
 
-    // --- Notice Board ---
+    /* NOTICE BOARD */
     const noticeContent = document.getElementById("noticeContent");
     const noticeHeader = document.getElementById("noticeHeader");
     const toggleNotice = document.getElementById("toggleNotice");
@@ -230,7 +230,7 @@
       }
     });
 
-    // --- Bracket Logic ---
+    /* BRACKET CORE LOGIC */
     function getRoundPrefix(totalRounds, roundIdx) {
       if (totalRounds === 3) return ["Quarterfinals","Semifinals","Finals"][roundIdx];
       if (totalRounds === 4) return ["R16","QF","SF","F"][roundIdx];
@@ -274,7 +274,6 @@
           card.style.top = `${top}px`;
           cardPositions[roundIdx][idx] = top;
 
-          // --- Header ---
           const header = document.createElement("div");
           header.className = "card-header";
           const leftTag = document.createElement("span");
@@ -286,7 +285,7 @@
           header.appendChild(rightTag);
           card.appendChild(header);
 
-          // --- Players ---
+          /* PLAYERS */
           const decided = !!match?.winner;
           const p1Win = decided && match.winner === "p1";
           const p2Win = decided && match.winner === "p2";

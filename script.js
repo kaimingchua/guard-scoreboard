@@ -997,22 +997,6 @@
       el.addEventListener("input",  () => { save(); onStateChanged(); });
     });
 
-    // Undo (z)
-    window.addEventListener("keydown", (e) => {
-      if ((e.key === "z" || e.key === "Z") && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
-        e.preventDefault();
-        // Simple undo: restore previous scores snapshot if available
-        if (historyLog.length <= 1) return;
-        const undone = scoreLog.pop();
-        orderLog.pop();
-        historyLog.pop();
-        scores = deepCopy(scoreLog[scoreLog.length - 1] || {1:0,2:0,3:0});
-        order = [...(orderLog[orderLog.length - 1] || [1,2,3])];
-        updateAllScores(undone);
-        rebuildHistoryUI();
-      }
-    });
-
     initControlsCollapsible();
 
     // Join Session UI

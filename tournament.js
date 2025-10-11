@@ -1,4 +1,3 @@
-// tournament.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getFirestore,
@@ -13,9 +12,10 @@ import {
   query,
   where,
   getDocs,
+  orderBy,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// --- Firebase ---
+// --- FIREBASE CONFIG ---
 const firebaseConfig = {
   apiKey: "AIzaSyC_jSYoQLlsYvyMkE4fZ4bHFz2fkE70shk",
   authDomain: "guard-scoreboard.firebaseapp.com",
@@ -30,7 +30,7 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 // -------------------------------
-// Utilities
+// UTILITIES
 // -------------------------------
 function generateScoreboardCode() {
   return Math.floor(1000 + Math.random() * 9000).toString();
@@ -76,7 +76,7 @@ function toSameShape(originalRound, roundArr) {
 }
 
 // -------------------------------
-// Bracket generation
+// BRACKET GENERATION
 // -------------------------------
 function generateBracket(players, size) {
   const rounds = Math.log2(size);
@@ -117,7 +117,7 @@ function generateBracket(players, size) {
 }
 
 // -------------------------------
-// Winner advancement
+// WINNER ADVANCEMENT
 // -------------------------------
 async function advanceWinnerIfReady(tournamentId, tData, matchDoc) {
   try {
@@ -199,7 +199,7 @@ async function advanceWinnerIfReady(tournamentId, tData, matchDoc) {
 }
 
 // -------------------------------
-// Rendering
+// RENDERING
 // -------------------------------
 let currentData = null;
 
@@ -207,7 +207,6 @@ function renderBracket(container, roundsArray, tData, tournamentId) {
   container.innerHTML = "";
   currentData = tData;
 
-  // sizing identical to live
   const totalRounds = roundsArray.length;
   const colSpacing = 400;
   const cardWidth  = 220;
@@ -217,7 +216,7 @@ function renderBracket(container, roundsArray, tData, tournamentId) {
 
   const cardPositions = [];
 
-  // --- Header row (stage + race to) ---
+  // --- HEADER ROW (stage + race to) ---
   const headerRow = document.createElement("div");
   headerRow.className = "flex items-start gap-[180px] mb-6"; // gap ~ colSpacing - cardWidth
 
@@ -247,7 +246,6 @@ function renderBracket(container, roundsArray, tData, tournamentId) {
   }
   container.appendChild(headerRow);
 
-  // --- Absolute-positioned bracket cards ---
   const bracketLayer = document.createElement("div");
   bracketLayer.className = "relative";
   container.appendChild(bracketLayer);
@@ -276,7 +274,7 @@ function renderBracket(container, roundsArray, tData, tournamentId) {
       card.style.top  = `${top}px`;
       cardPositions[roundIdx][idx] = top;
 
-      // --- Header (round tag + scoreboard ID) ---
+      // --- HEADER (round tag + scoreboard ID) ---
       const header = document.createElement("div");
       header.className = "card-header";
       const leftTag = document.createElement("span");
@@ -308,13 +306,12 @@ function renderBracket(container, roundsArray, tData, tournamentId) {
     });
   });
 
-  // draw connectors
+  // DRAW CONNECTORS
   requestAnimationFrame(() => {
     drawConnectors(cardPositions, colSpacing, cardWidth, cardHeight);
   
     const bracketWrap = document.getElementById("bracketWrap");
   
-    // Fit into viewport dimensions
     const viewportHeight = window.innerHeight - 220; // padding for header + controls
     const viewportWidth  = window.innerWidth - 80;   // padding for controls
     const bracketHeight  = bracketWrap.scrollHeight;
@@ -324,14 +321,13 @@ function renderBracket(container, roundsArray, tData, tournamentId) {
     if (bracketHeight > viewportHeight || bracketWidth > viewportWidth) {
       const scaleH = viewportHeight / bracketHeight;
       const scaleW = viewportWidth / bracketWidth;
-      scale = Math.min(scaleH, scaleW); // choose whichever fits tighter
+      scale = Math.min(scaleH, scaleW);
     }
   
     bracketWrap.style.transform = `scale(${scale})`;
     bracketWrap.style.transformOrigin = "top left";
   });
 
-  // attach listeners for Race To
   container.querySelectorAll(".race-input").forEach((input) => {
     input.addEventListener("change", async (e) => {
       const val = parseInt(e.target.value, 10);
@@ -353,37 +349,28 @@ function drawConnectors(cardPositions, colSpacing, cardWidth, cardHeight) {
   const svg = document.getElementById("bracketLines");
   const wrap = document.getElementById("bracketWrap");
 
-  // Size SVG to wrapper
   svg.setAttribute("width", wrap.scrollWidth);
   svg.setAttribute("height", wrap.scrollHeight);
 
-  // Preserve any <defs> that were placed in the SVG (gradients, etc.)
   const defs = svg.querySelector("defs");
   const defsHTML = defs ? defs.outerHTML : "";
   svg.innerHTML = defsHTML;
 
-  // Push the RIGHT end further to the right while keeping LEFT end fixed
-  // Increase this number to push more to the right
-  const PUSH_RIGHT = 15; // <- adjust if you want a bit more/less nudge
+  const PUSH_RIGHT = 15;
 
   for (let r = 0; r < cardPositions.length - 1; r++) {
     for (let i = 0; i < cardPositions[r].length; i += 2) {
       const targetIdx = Math.floor(i / 2);
 
-      // end (x2,y2): at next round column, nudged to the right
       const x2 = (r + 1) * colSpacing + PUSH_RIGHT;
       const y2 = cardPositions[r + 1][targetIdx] + cardHeight / 2;
 
-      // connect pair i and i+1 into targetIdx
       [i, i + 1].forEach((j) => {
         if (j >= cardPositions[r].length) return;
 
-        // start (x1,y1): right edge of current card — DO NOT MOVE THIS
         const LEFT_OFFSET = 20; 
         const x1 = r * colSpacing + cardWidth + LEFT_OFFSET;
         const y1 = cardPositions[r][j] + cardHeight / 2;
-
-        // midpoint x to create a right-angle elbow path
         const midX = (x1 + x2) / 2;
 
         const pathData = `M${x1},${y1} H${midX} V${y2} H${x2}`;
@@ -391,7 +378,6 @@ function drawConnectors(cardPositions, colSpacing, cardWidth, cardHeight) {
         el.setAttribute("d", pathData);
         el.setAttribute("fill", "none");
 
-        // Try to color by match status if tournament doc is loaded in currentData
         const match = currentData?.rounds?.[`round${r + 1}`]?.[j];
         if (match?.status === "live") el.classList.add("flow-path-live");
         else if (match?.status === "ended") el.classList.add("flow-path-ended");
@@ -404,7 +390,7 @@ function drawConnectors(cardPositions, colSpacing, cardWidth, cardHeight) {
 }
 
 // -------------------------------
-// Main flow
+// MAIN FLOW
 // -------------------------------
 document.addEventListener("DOMContentLoaded", () => {
   const genBtn = document.getElementById("generate");
@@ -446,7 +432,54 @@ document.addEventListener("DOMContentLoaded", () => {
       // render using absolute positioning and draw connectors
       renderBracket(bracketEl, normalizeRounds(tData.rounds), tData, tournamentId);
 
-      // End button
+    // --- NOTICE BOARD ---
+    const noticeContent = document.getElementById("noticeContent");
+    const noticeHeader = document.getElementById("noticeHeader");
+    const toggleNotice = document.getElementById("toggleNotice");
+    const noticeInput = document.getElementById("noticeInput");
+    const sendNotice = document.getElementById("sendNotice");
+
+    let collapsed = false;
+    noticeHeader.onclick = () => {
+      collapsed = !collapsed;
+      noticeContent.style.display = collapsed ? "none" : "block";
+      toggleNotice.textContent = collapsed ? "+" : "−";
+    };
+
+    // LIVE UPDATES
+    onSnapshot(
+      query(collection(db, "tournaments", tournamentId, "notices"), orderBy("createdAt","desc")),
+      (snap) => {
+        noticeContent.innerHTML = "";
+        snap.forEach(docSnap => {
+          const n = docSnap.data();
+          const ts = n.createdAt?.toDate?.() || new Date();
+          const timeStr = ts.toLocaleDateString("en-GB") + " " + ts.toLocaleTimeString("en-GB");
+          const item = document.createElement("div");
+          item.className = "notice-item";
+          item.innerHTML = `<div>${n.message}</div><div class="notice-time">${timeStr}</div>`;
+          noticeContent.appendChild(item);
+        });
+      }
+    );
+
+    // SENDING NOTICES
+    sendNotice.onclick = async () => {
+      const msg = noticeInput.value.trim();
+      if (!msg) return;
+      try {
+        await addDoc(collection(db, "tournaments", tournamentId, "notices"), {
+          message: msg,
+          createdAt: serverTimestamp()
+        });
+        noticeInput.value = "";
+      } catch (err) {
+        console.error("Failed to send notice:", err);
+        alert("Error sending notice: " + err.message);
+      }
+    };
+
+      // END BUTTON
       endBtn.classList.remove("hidden");
       endBtn.onclick = async () => {
         if (!confirm("Would you like to end the tournament?")) return;
