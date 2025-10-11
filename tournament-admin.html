@@ -6,7 +6,6 @@
   <title>Tournament Admin Portal</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    /* Background + font */
     body {
       background: radial-gradient(circle at top left, #0f172a, #111827, #000);
       color: #e5e7eb;
@@ -23,7 +22,7 @@
       font-style: normal;
     }
 
-    /* Glass effect */
+    /* GLASS THEME */
     .glass-card {
       background: rgba(30,41,59,0.55);
       border: 1px solid rgba(147,197,253,0.35);
@@ -58,7 +57,7 @@
     }
     .glass-btn:hover { background: rgba(255,255,255,0.2); }
 
-    /* Bracket + Cards */
+    /* BRACKET + CARDS */
     #bracketWrap { position: relative; }
     #bracket { position: relative; min-height: 600px; }
     #bracketLines { position: absolute; inset: 0; pointer-events: none; z-index: 5; }
@@ -89,7 +88,6 @@
     .winner { font-weight: 700; color: #22c55e; }
     .loser  { color: #6b7280; }
 
-    /* Line styles */
     .flow-path-pending { stroke: #6b7280; stroke-width: 2.5; }
     .flow-path-live {
       stroke: url(#blueWhiteGradient);
@@ -130,13 +128,56 @@
       overflow-y: auto;
       max-height: 80vh;
     }
+
+    /* NOTICE BOARD CSS */
+    .notice-board {
+        position: fixed;
+        top: 5rem;
+        right: 1rem;
+        width: 300px;
+        max-height: 70vh;
+        display: flex;
+        flex-direction: column;
+        background: rgba(30,41,59,0.65);
+        border: 1px solid rgba(147,197,253,0.4);
+        backdrop-filter: blur(12px);
+        border-radius: 0.75rem;
+        box-shadow: 0 0 20px rgba(59,130,246,0.15);
+        overflow: hidden;
+        z-index: 50;
+        font-size: 0.85rem;
+    }
+    .notice-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem 0.75rem;
+        font-weight: bold;
+        background: rgba(59,130,246,0.2);
+        cursor: pointer;
+    }
+    .notice-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 0.5rem 0.75rem;
+    }
+    .notice-item {
+        margin-bottom: 0.75rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid rgba(148,163,184,0.2);
+    }
+    .notice-time {
+        font-size: 0.7rem;
+        color: #9ca3af;
+    }
+
   </style>
 </head>
 <body class="p-6">
 
   <h1 class="text-3xl font-extrabold mb-6 text-blue-300">Tournament Admin Portal</h1>
   
-  <!-- Controls -->
+  <!-- CONTROLS -->
   <div class="mb-6 space-y-4 glass-card">
     <div>
       <label class="block mb-2 font-semibold">Tournament Name</label>
@@ -167,7 +208,7 @@
       <button id="shareLiveLink" class="hidden glass-btn bg-gray-700/80 border-gray-500">Share Live Link</button>
       <span id="shareToast" class="hidden text-emerald-400 text-sm font-semibold">Link copied!</span>
 
-      <!-- Zoom Slider -->
+      <!-- ZOOM SLIDER -->
       <div id="zoomControls" class="hidden mt-4 flex items-center gap-3">
         <label for="zoomRange" class="text-sm font-semibold text-gray-300">Zoom:</label>
         <input id="zoomRange" type="range" min="0.5" max="1.5" step="0.05" value="1" class="w-48">
@@ -176,7 +217,7 @@
     </div>
   </div>
 
-  <!-- Bracket -->
+  <!-- BRACKET -->
   <div id="bracketWrap" class="glass-card relative">
     <svg id="bracketLines">
       <defs>
@@ -193,10 +234,24 @@
     <div id="bracket"></div>
   </div>
 
-  <!-- Tournament logic -->
+<!-- NOTICE BOARD -->
+<div id="noticeBoard" class="notice-board">
+    <div id="noticeHeader" class="notice-header">
+      <span>Notice Board</span>
+      <span id="toggleNotice">−</span>
+    </div>
+    <div id="noticeContent" class="notice-content"></div>
+    <div class="p-2 border-t border-gray-600 flex">
+      <input id="noticeInput" type="text" class="flex-1 glass-input text-sm" placeholder="Type a notice...">
+      <button id="sendNotice" class="glass-btn ml-2">Send</button>
+    </div>
+  </div>  
+  
+
+  <!-- TOURNAMENT CORE LOGIC -->
   <script type="module" src="tournament.js"></script>
 
-  <!-- Delete + Share -->
+  <!-- DELETE + SHARE -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getFirestore, doc, deleteDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -237,21 +292,21 @@
     }
 
     function enableButtons(tournamentId) {
-      if (!tournamentId) return;
-      deleteBtn.classList.remove("hidden");
-      deleteBtn.onclick = () => deleteTournament(tournamentId);
+        if (!tournamentId) return;
+        deleteBtn.classList.remove("hidden");
+        deleteBtn.onclick = () => deleteTournament(tournamentId);
 
-      const url = `${window.location.origin}/tournament-live.html?id=${tournamentId}`;
-      shareBtn.classList.remove("hidden");
-      shareBtn.onclick = async () => {
-        try {
-          await navigator.clipboard.writeText(url);
-          shareToast.classList.remove("hidden");
-          setTimeout(() => shareToast.classList.add("hidden"), 1600);
-        } catch (err) {
-          alert("Failed to copy link: " + (err?.message || err));
-        }
-      };
+        const liveUrl = `${window.location.origin}/tournament-live.html?id=${tournamentId}`;
+        shareBtn.classList.remove("hidden");
+        shareBtn.onclick = async () => {
+            try {
+            await navigator.clipboard.writeText(liveUrl);
+            shareToast.classList.remove("hidden");
+            setTimeout(() => shareToast.classList.add("hidden"), 1600);
+            } catch (err) {
+            alert("Failed to copy link: " + (err?.message || err));
+            }
+        };
     }
 
     const existing = localStorage.getItem("lastTournamentId");
