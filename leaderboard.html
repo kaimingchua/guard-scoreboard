@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Guard Leaderboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background: radial-gradient(circle at top left, #0f172a, #111827, #000);
+      color: #e5e7eb;
+      min-height: 100vh;
+      font-family: system-ui, sans-serif;
+    }
+
+    @font-face {
+      font-family: 'BebasNeue-Regular';
+      src: url('fonts/BebasNeue-Regular.otf') format('opentype');
+      font-weight: normal;
+      font-style: normal;
+    }
+
+    h1, h2, .bebas {
+      font-family: 'BebasNeue-Regular', system-ui, sans-serif;
+      letter-spacing: 0.05em;
+    }
+
+    .glass {
+      background: rgba(30,41,59,0.55);
+      border: 1px solid rgba(147,197,253,0.4);
+      backdrop-filter: blur(12px);
+      box-shadow: 0 0 14px rgba(59,130,246,0.12);
+    }
+
+    .glass-card {
+      background: rgba(30,41,59,0.55);
+      border: 1px solid rgba(147,197,253,0.4);
+      backdrop-filter: blur(12px);
+      border-radius: 0.75rem;
+      box-shadow: 0 0 14px rgba(59,130,246,0.12);
+      padding: 1rem;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .glass-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 0 20px rgba(59,130,246,0.25);
+    }
+
+    .pill {
+      background: rgba(255,255,255,0.10);
+      border: 1px solid rgba(255,255,255,0.18);
+      backdrop-filter: blur(10px);
+      border-radius: 999px;
+      padding: 0.35rem 0.7rem;
+    }
+
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+
+    /* === Scoreboard-style glass buttons === */
+    .glass-btn {
+        font-family: 'BebasNeue-Regular', system-ui, sans-serif;
+        letter-spacing: 0.05em;
+        padding: 0.4rem 0.9rem;
+        border-radius: 0.5rem;
+        border: 1px solid rgba(255,255,255,0.25);
+        background: rgba(255,255,255,0.10);
+        backdrop-filter: blur(10px);
+        color: #e5e7eb;
+        transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+    }
+
+    .glass-btn:hover {
+        background: rgba(255,255,255,0.18);
+        box-shadow: 0 0 14px rgba(59,130,246,0.35);
+        transform: translateY(-1px);
+    }
+
+    .glass-btn:active {
+        transform: translateY(0);
+        box-shadow: 0 0 6px rgba(59,130,246,0.2);
+    }
+
+    .glass-btn:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+    }
+
+    .glass-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        cursor: pointer;
+
+        font-family: 'BebasNeue-Regular', system-ui, sans-serif;
+        letter-spacing: 0.05em;
+
+        padding: 0.4rem 0.9rem;
+        border-radius: 0.5rem;
+        border: 1px solid rgba(255,255,255,0.25);
+        background: rgba(255,255,255,0.10);
+        backdrop-filter: blur(10px);
+        color: #e5e7eb;
+
+        transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+    }
+
+    .glass-toggle:hover {
+        background: rgba(255,255,255,0.18);
+        box-shadow: 0 0 14px rgba(59,130,246,0.35);
+        transform: translateY(-1px);
+    }
+
+    .glass-toggle input {
+        display: none;
+    }
+
+    /* ON state */
+    .glass-toggle input:checked + span {
+        background: rgba(59,130,246,0.25);
+        box-shadow: inset 0 0 0 1px rgba(59,130,246,0.6), 0 0 14px rgba(59,130,246,0.45);
+    }
+
+    /* Inner label chip */
+    .glass-toggle span {
+        padding: 0.1rem 0.45rem;
+        border-radius: 0.35rem;
+    }
+
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="fixed top-0 left-0 w-full px-4 py-2 flex items-center justify-between glass z-50">
+    <div class="flex items-center gap-3">
+      <span class="text-blue-300 font-extrabold text-xl tracking-wide bebas">Guard!</span>
+      <span class="text-gray-300 text-sm pill">Leaderboard</span>
+    </div>
+    <div class="flex items-center gap-2">
+        <a href="./index.html" class="glass-btn bebas text-sm">Scoreboard</a>
+        <a href="./live.html" class="glass-btn bebas text-sm" target="_blank" rel="noopener noreferrer">Live Games</a>
+    </div>
+  </div>
+
+  <div class="max-w-6xl mx-auto px-4 pt-20 pb-10">
+    <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-5">
+      <div>
+        <h1 class="text-4xl md:text-5xl font-extrabold text-blue-300">Guard Leaderboard</h1>
+        <p class="text-gray-300 text-sm mt-1">
+          Earnings are aggregated from past games in Firestore (<span class="mono">guard</span> collection).
+        </p>
+      </div>
+
+      <div class="flex flex-col sm:flex-row gap-2 sm:items-center">
+        <input id="search" class="pill w-full sm:w-72 text-sm bg-white/5 focus:outline-none focus:ring-2 focus:ring-blue-400/60"
+               placeholder="Search player (e.g. KM, JL, JY)"/>
+        <label class="glass-toggle text-sm select-none">
+        <input id="includeLive" type="checkbox" />
+        <span>Include Live</span>
+        </label>
+        <button id="refresh" class="glass-btn text-sm">Refresh</button>
+      </div>
+    </div>
+
+    <div class="grid gap-4 md:grid-cols-3">
+      <div class="glass-card md:col-span-2">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-2xl font-bold text-blue-300">Rankings</h2>
+          <div class="text-xs text-gray-400">
+            Last updated: <span id="lastUpdated">-</span>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left">
+            <thead>
+              <tr class="text-gray-300 text-sm border-b border-white/10">
+                <th class="py-2 pr-2 w-16">#</th>
+                <th class="py-2 pr-2">Player</th>
+                <th class="py-2 pr-2 text-right">Earnings</th>
+                <th class="py-2 pr-2 text-right">Games</th>
+                <th class="py-2 pr-2 text-right">Avg / Game</th>
+              </tr>
+            </thead>
+            <tbody id="rows" class="text-sm"></tbody>
+          </table>
+        </div>
+
+        <p id="empty" class="text-sm text-gray-400 mt-4 hidden">
+          No finished games found yet.
+        </p>
+      </div>
+
+      <div class="glass-card">
+        <h2 class="text-2xl font-bold text-blue-300 mb-3">Data Quality</h2>
+        <div class="text-sm text-gray-300 space-y-3">
+          <div>
+            <div class="text-xs text-gray-400 mb-1">Unknown player IDs</div>
+            <ul id="unknown" class="text-xs text-gray-300 list-disc pl-5 space-y-1 max-h-48 overflow-auto"></ul>
+            <p id="unknownEmpty" class="text-xs text-gray-500 hidden">None 🎉</p>
+          </div>
+
+          <div class="pt-2 border-t border-white/10">
+            <div class="text-xs text-gray-400 mb-1">Scanned games</div>
+            <div class="text-2xl font-extrabold bebas" id="gamesCount">0</div>
+            <div class="text-xs text-gray-500">Ended (and optionally live).</div>
+          </div>
+
+          <div class="pt-2 border-t border-white/10">
+            <div class="text-xs text-gray-400 mb-1">Notes</div>
+            <p class="text-xs text-gray-300">
+              This page assumes Firestore <span class="mono">players</span> values are already canonical player IDs
+              (e.g. KM, JL, JY). Any values outside the known ID list appear above.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="text-xs text-gray-500 mt-6">
+      Tip: If you want this page to be reachable from your Controls panel, add a button/link in <span class="mono">index.html</span>.
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    // --- Firebase (same as index.html / live.html) ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyC_jSYoQLlsYvyMkE4fZ4bHFz2fkE70shk",
+      authDomain: "guard-scoreboard.firebaseapp.com",
+      projectId: "guard-scoreboard",
+      storageBucket: "guard-scoreboard.firebasestorage.app",
+      messagingSenderId: "491028228431",
+      appId: "1:491028228431:web:4c92700d264f5b1aae3d3a",
+      measurementId: "G-5Z28C6N29L"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db  = getFirestore(app);
+
+    // IDs only (safe for public repo)
+    const CANON_IDS = new Set(["KM","JL","JY","NT","EP","JT","DD","NK"]);
+
+    // --- UI ---
+    const rowsEl = document.getElementById("rows");
+    const emptyEl = document.getElementById("empty");
+    const lastUpdatedEl = document.getElementById("lastUpdated");
+    const searchEl = document.getElementById("search");
+    const includeLiveEl = document.getElementById("includeLive");
+    const refreshBtn = document.getElementById("refresh");
+    const unknownEl = document.getElementById("unknown");
+    const unknownEmptyEl = document.getElementById("unknownEmpty");
+    const gamesCountEl = document.getElementById("gamesCount");
+
+    let cachedRanking = [];
+
+    function money(n) {
+      const v = Number(n || 0);
+      return (v >= 0 ? "+" : "") + v.toFixed(0);
+    }
+
+    function renderTable(list, q) {
+      const queryText = (q || "").trim().toLowerCase();
+      const filtered = !queryText ? list : list.filter(r => String(r.id).toLowerCase().includes(queryText));
+
+      rowsEl.innerHTML = "";
+      if (!filtered.length) {
+        emptyEl.classList.remove("hidden");
+        return;
+      }
+      emptyEl.classList.add("hidden");
+
+      filtered.forEach((r, idx) => {
+        const rank = idx + 1;
+        const avg = r.games ? (r.total / r.games) : 0;
+        const signClass = r.total > 0 ? "text-emerald-300" : (r.total < 0 ? "text-red-300" : "text-gray-200");
+
+        rowsEl.insertAdjacentHTML("beforeend", `
+          <tr class="border-b border-white/5 hover:bg-white/5 transition">
+            <td class="py-2 pr-2 text-gray-300">${rank}</td>
+            <td class="py-2 pr-2">
+              <div class="flex items-center gap-2">
+                <span class="pill text-xs">${r.id}</span>
+              </div>
+            </td>
+            <td class="py-2 pr-2 text-right font-extrabold bebas ${signClass}">${money(r.total)}</td>
+            <td class="py-2 pr-2 text-right text-gray-200">${r.games}</td>
+            <td class="py-2 pr-2 text-right text-gray-300">${(avg >= 0 ? "+" : "") + avg.toFixed(1)}</td>
+          </tr>
+        `);
+      });
+    }
+
+    function renderUnknown(set) {
+      const items = Array.from(set).sort((a,b) => a.localeCompare(b));
+      unknownEl.innerHTML = "";
+      if (!items.length) {
+        unknownEmptyEl.classList.remove("hidden");
+        return;
+      }
+      unknownEmptyEl.classList.add("hidden");
+      for (const name of items) {
+        const li = document.createElement("li");
+        li.textContent = name;
+        unknownEl.appendChild(li);
+      }
+    }
+
+    async function load() {
+      const includeLive = !!includeLiveEl.checked;
+
+      const totals = new Map(); // id -> { total, games }
+      const unknown = new Set();
+      let scanned = 0;
+
+      const q = query(collection(db, "guard"), orderBy("updatedAt", "desc"));
+      const snap = await getDocs(q);
+
+      snap.forEach(docSnap => {
+        const g = docSnap.data() || {};
+        const status = g.status || "unknown";
+        const isEnded = status === "ended";
+        const isLive  = status === "live";
+
+        if (!isEnded && !(includeLive && isLive)) return;
+
+        const players = g.players || {};
+        const scores  = g.scores  || {};
+        const pids = Object.keys(players);
+
+        if (!pids.length) return;
+        scanned++;
+
+        for (const pid of pids) {
+          const id = String(players[pid] || "").trim().toUpperCase();
+          if (!id) continue;
+
+          // If you want to STRICTLY ignore unknown IDs, uncomment:
+          // if (!CANON_IDS.has(id)) { unknown.add(id); continue; }
+          if (!CANON_IDS.has(id)) unknown.add(id);
+
+          const val = Number(scores[pid] ?? 0);
+
+          if (!totals.has(id)) totals.set(id, { id, total: 0, games: 0 });
+          const row = totals.get(id);
+          row.total += val;
+          row.games += 1;
+        }
+      });
+
+      gamesCountEl.textContent = String(scanned);
+      renderUnknown(unknown);
+
+      const ranking = Array.from(totals.values())
+        .sort((a,b) => (b.total - a.total) || (b.games - a.games) || a.id.localeCompare(b.id));
+
+      cachedRanking = ranking;
+      lastUpdatedEl.textContent = new Date().toLocaleString();
+
+      renderTable(ranking, searchEl.value);
+    }
+
+    // UI wiring
+    searchEl.addEventListener("input", () => renderTable(cachedRanking, searchEl.value));
+    includeLiveEl.addEventListener("change", load);
+    refreshBtn.addEventListener("click", load);
+
+    // boot
+    load().catch(err => {
+      console.error(err);
+      emptyEl.classList.remove("hidden");
+      emptyEl.textContent = "Failed to load leaderboard. Check console.";
+    });
+  </script>
+</body>
+</html>
