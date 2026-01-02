@@ -9,6 +9,7 @@
   let historyLog = [];
   let scoreLog = [];
   let orderLog = [];
+  let actionStatsLog = [];
 
   let actionStats = {
     win:   {1:0,2:0,3:0,4:0},
@@ -28,14 +29,29 @@
   const live = { enabled: false, gameId: null, ref: null, unsub: null };
   const LIVE_STORAGE_KEY = "guard.liveGameId";
 
-  let suppressSync = false;              // when true, local writes are suppressed (during remote apply)
-  live.lastAppliedHash = "";             // hash of last applied remote state
-  live.lastWrittenHash = "";             // hash of last written local state
+  let suppressSync = false;
+  live.lastAppliedHash = "";
+  live.lastWrittenHash = "";
 
   // Helpers
   const $  = (sel) => document.querySelector(sel);
   const $$ = (sel) => Array.from(document.querySelectorAll(sel));
   const deepCopy = (obj) => JSON.parse(JSON.stringify(obj));
+
+  // Canonical Player IDs
+  const CANON_IDS = new Set(["KM", "JL", "JY", "NT", "EP", "JT", "DD", "NK"]);
+
+  function normalizePlayerId(raw) {
+    const s = String(raw || "").trim();
+    if (!s) return "";
+
+    const compact = s
+      .replace(/\s+/g, "")
+      .toUpperCase()
+      .replace(/[^A-Z]/g, "");
+
+    return CANON_IDS.has(compact) ? compact : s;
+  }
 
   function stableStringify(value) {
     const seen = new WeakSet();
@@ -110,7 +126,9 @@
 
   function getPlayerName(i) {
     const el = $(`#name-${i}`);
-    return el?.value?.trim() || `P${i}`;
+    const raw = el?.value || "";
+    const norm = normalizePlayerId(raw);
+    return norm || `P${i}`;
   }
 
   function setPlayerNameLabel(i) {
@@ -129,6 +147,7 @@
     historyLog.push({ text, time: new Date().toISOString() });
     scoreLog.push(deepCopy(scores));
     orderLog.push([...order]);
+    actionStatsLog.push(deepCopy(actionStats));
     save();
     onStateChanged();
   }
@@ -149,7 +168,7 @@
   function save() {
     const payload = {
       scores, order, isFourPlayers,
-      historyLog, scoreLog, orderLog,
+      historyLog, scoreLog, orderLog, actionStatsLog,
       players: Object.fromEntries(
         (isFourPlayers ? [1,2,3,4] : [1,2,3]).map((i) => [i, getPlayerName(i)])
       ),
@@ -171,6 +190,7 @@
       historyLog = s.historyLog || [];
       scoreLog = s.scoreLog || [];
       orderLog = s.orderLog || [];
+      actionStatsLog = s.actionStatsLog || [];
       actionStats = s.actionStats || actionStats;
       if (s.rates) {
         const winEl  = $("#winRate");
@@ -354,6 +374,22 @@
     const nameInput = $(`#name-${i}`);
     if (nameInput) {
       nameInput.addEventListener("input", () => {
+        const before = nameInput.value;
+        const after = normalizePlayerId(before);
+
+        if (after !== before && CANON_IDS.has(after)) {
+          nameInput.value = after;
+        }
+
+        setPlayerNameLabel(i);
+        setTurnOrderText();
+        save();
+        onStateChanged();
+      });
+
+      nameInput.addEventListener("blur", () => {
+        const after = normalizePlayerId(nameInput.value);
+        nameInput.value = after;
         setPlayerNameLabel(i);
         setTurnOrderText();
         save();
@@ -768,6 +804,117 @@
   window.showHistory = () => { rebuildHistoryUI(); $("#historyPopup")?.classList.remove("hidden"); };
   window.hideHistory = () => { $("#historyPopup")?.classList.add("hidden"); };
 
+  // ---- Undo (one action at a time) ----
+  window.undoLastAction = function () {
+    if (!scoreLog || scoreLog.length <= 1 || !orderLog || orderLog.length <= 1 || !historyLog || historyLog.length <= 1 || !actionStatsLog || actionStatsLog.length <= 1) {
+      alert("Nothing to undo yet.");
+      return;
+    }
+
+    const oldScores = deepCopy(scores);
+
+    // Remove the most recent action + snapshots
+    historyLog.pop();
+    scoreLog.pop();
+    orderLog.pop();
+    actionStatsLog.pop();
+
+    // Restore previous snapshot
+    const prevScores = scoreLog[scoreLog.length - 1] || {};
+    const prevOrder  = orderLog[orderLog.length - 1] || (isFourPlayers ? [1,2,3,4] : [1,2,3]);
+    const prevStats  = actionStatsLog[actionStatsLog.length - 1] || deepCopy(actionStats);
+
+    scores = deepCopy(prevScores);
+    order  = Array.isArray(prevOrder) ? [...prevOrder] : String(prevOrder).split(",").map(n => parseInt(n,10)).filter(Boolean);
+
+    actionStats = deepCopy(prevStats);
+
+    // Ensure score keys exist for current player count
+    const count = isFourPlayers ? 4 : 3;
+    for (let i = 1; i <= count; i++) if (scores[i] === undefined) scores[i] = 0;
+    if (!isFourPlayers) delete scores[4];
+
+    setTurnOrderText();
+    updateCardStyles();
+    updateSpecialActionButtons();
+    rebuildHistoryUI();
+
+    save();
+    onStateChanged();
+
+    // Animate / refresh score UI
+    updateAllScores(oldScores);
+  };
+
+  // ---- Turn order manual edit ----
+  window.editTurnOrder = function () {
+    const count = isFourPlayers ? 4 : 3;
+
+    const currentNames = order.map((pid) => getPlayerName(pid));
+    const hint = isFourPlayers ? "e.g. 2,1,4,3 or KM, JL, Jeremy, Nobel" : "e.g. 2,1,3 or KM, JL, Jeremy";
+
+    const input = prompt(
+      `Edit turn order (${count} players).\nEnter player numbers or names separated by commas.\n${hint}`,
+      currentNames.join(", ")
+    );
+    if (input === null) return;
+
+    const tokens = input
+      .split(/[,>→]+/g)
+      .map(s => s.trim())
+      .filter(Boolean);
+
+    if (tokens.length !== count) {
+      alert(`Please enter exactly ${count} entries.`);
+      return;
+    }
+
+    // Build a lookup of normalized names -> pid from current inputs
+    const norm = (s) => String(s || "").trim().toLowerCase().replace(/\s+/g, "");
+    const nameToPid = new Map();
+    for (let pid = 1; pid <= count; pid++) {
+      nameToPid.set(norm(String(pid)), pid);
+      nameToPid.set(norm(`p${pid}`), pid);
+      nameToPid.set(norm(getPlayerName(pid)), pid);
+    }
+
+    const newOrder = [];
+    for (const t of tokens) {
+      const n = norm(t);
+      let pid = null;
+
+      // Direct number?
+      if (/^\d+$/.test(n)) pid = parseInt(n, 10);
+
+      // Name match?
+      if (!pid && nameToPid.has(n)) pid = nameToPid.get(n);
+
+      if (!pid || pid < 1 || pid > count) {
+        alert(`Could not understand "${t}". Use player numbers 1-${count} or exact player names.`);
+        return;
+      }
+      newOrder.push(pid);
+    }
+
+    // Must be unique
+    if (new Set(newOrder).size !== count) {
+      alert("Turn order must not contain duplicates.");
+      return;
+    }
+
+    const prev = [...order];
+    order = newOrder;
+
+    const msg = `Turn order manually set to ${order.map(getPlayerName).join(" → ")}.`;
+    logState(msg);
+    addLogLine(historyLog[historyLog.length - 1]);
+
+    // Update immediately
+    setTurnOrderText();
+    updateSpecialActionButtons();
+  };
+
+
   window.showAnalytics = () => {
     const popup = $("#analyticsPopup");
     if (!popup) return;
@@ -994,6 +1141,24 @@
     });
 
     initControlsCollapsible();
+    // Turn order is tappable to edit (like scores)
+    const turnEl = $("#turnOrderDisplay");
+    if (turnEl) {
+      turnEl.title = "Click to edit turn order";
+      turnEl.addEventListener("click", () => window.editTurnOrder());
+    }
+
+    // Hotkey: Z to undo last action (when not typing in an input)
+    document.addEventListener("keydown", (e) => {
+      const tag = (e.target && e.target.tagName) ? e.target.tagName.toLowerCase() : "";
+      const typing = tag === "input" || tag === "textarea" || (e.target && e.target.isContentEditable);
+      if (typing) return;
+      if (e.key === "z" || e.key === "Z") {
+        e.preventDefault();
+        window.undoLastAction();
+      }
+    });
+
 
     // Join Session UI
     const joinBtn = $("#joinSessionBtn");

@@ -6,6 +6,11 @@
   <title>Guard Scoreboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
+    .bebas {
+      font-family: 'BebasNeue-Regular', system-ui, sans-serif !important;
+      letter-spacing: 0.04em;
+    }
+
     body {
       background: radial-gradient(circle at top left, #0f172a, #111827, #000);
       color: #e5e7eb;
@@ -14,10 +19,10 @@
     }
 
     @font-face {
-    font-family: 'BebasNeue-Regular';
-    src: url('fonts/BebasNeue-Regular.otf') format('truetype');
-    font-weight: normal;
-    font-style: normal;
+      font-family: 'BebasNeue-Regular';
+      src: url('fonts/BebasNeue-Regular.otf') format('opentype');
+      font-weight: normal;
+      font-style: normal;
     }
 
     #controlsToggle,
@@ -177,6 +182,7 @@
       border-radius: 0.5rem;
       padding: 0.4rem 0.9rem;
       font-weight: 500;
+      font-family: inherit;
       backdrop-filter: blur(10px);
       transition: all 0.2s ease;
     }
@@ -311,9 +317,14 @@
   <!-- Header -->
   <div class="fixed top-0 left-0 w-full px-4 py-2 flex items-center justify-between glass z-50">
     <span class="text-blue-300 font-extrabold text-xl tracking-wide">Guard!</span>
-    <button id="controlsToggle" class="btn btn-neutral" aria-expanded="false" aria-controls="controlsPanel">
+    <div class="flex items-center gap-2">
+      <a href="./leaderboard.html" target="_blank" rel="noopener noreferrer" class="glass-btn bebas text-sm px-3 py-1">Leaderboard</a>
+      <a href="./live.html" target="_blank" rel="noopener noreferrer" class="glass-btn bebas text-sm px-3 py-1">Live Matches</a>
+      <button id="controlsToggle" class="glass-btn bebas text-sm px-3 py-1" aria-expanded="false" aria-controls="controlsPanel">
       Controls ▾
     </button>
+  
+    </div>
   </div>
 
   <!-- Controls Panel -->
@@ -326,6 +337,7 @@
         <button onclick="showHelp()" class="glass-btn">Help</button>
         <button onclick="clearGameData()" class="glass-btn">Clear</button>
         <button onclick="showHistory()" class="glass-btn">History</button>
+        <button onclick="undoLastAction()" class="glass-btn">Undo</button>
         <button onclick="showAnalytics()" class="glass-btn">Analytics</button>
         <button onclick="shareScoreboardToFacebook()" class="glass-btn glass-btn-primary">Share</button>
         <button id="liveToggle" onclick="toggleLiveSharing()" class="glass-btn glass-btn-emerald">Live OFF</button>
@@ -363,7 +375,7 @@
   </div>
 
   <!-- Turn Order -->
-  <div id="turnOrderDisplay" class="mt-24 sm:mt-28 mb-2 text-center text-lg font-bold text-blue-300">
+  <div id="turnOrderDisplay" class="mt-24 sm:mt-28 mb-2 text-center text-lg font-bold text-blue-300 cursor-pointer hover:underline">
     Turn: -
   </div>
 
@@ -389,6 +401,7 @@
     <div class="popup w-11/12 max-w-lg max-h-[80vh] overflow-y-auto">
       <button onclick="hideHistory()" class="absolute top-2 right-3 text-xl font-bold">&times;</button>
       <h2 class="text-lg font-bold mb-3">📜 Score History</h2>
+      <button onclick="undoLastAction()" class="glass-btn w-full mb-3">Undo Last Action</button>
       <ul id="logList" class="text-sm space-y-2"></ul>
     </div>
   </div>  

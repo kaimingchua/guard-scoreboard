@@ -207,6 +207,7 @@
       <button id="deleteTournament" class="hidden glass-btn bg-red-800/80 border-red-500">Delete Tournament</button>
       <button id="shareLiveLink" class="hidden glass-btn bg-gray-700/80 border-gray-500">Share Live Link</button>
       <span id="shareToast" class="hidden text-emerald-400 text-sm font-semibold">Link copied!</span>
+      <button id="openOverlayPopup" class="glass-btn bg-indigo-700/80 border-indigo-400">Generate Score Overlay</button>
 
       <!-- ZOOM SLIDER -->
       <div id="zoomControls" class="hidden mt-4 flex items-center gap-3">
@@ -245,8 +246,19 @@
       <input id="noticeInput" type="text" class="flex-1 glass-input text-sm" placeholder="Type a notice...">
       <button id="sendNotice" class="glass-btn ml-2">Send</button>
     </div>
-  </div>  
-  
+</div>
+
+<!-- OVERLAY POPUP -->
+<div id="overlayPopup" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50">
+  <div class="glass-card w-80 text-center">
+    <h2 class="text-xl font-bold text-blue-300 mb-3">Enter Scoreboard ID</h2>
+    <input id="overlayIdInput" type="text" class="glass-input w-full mb-3 text-center" placeholder="Enter 4-digit ID" maxlength="4">
+    <div class="flex justify-center gap-3">
+      <button id="cancelOverlay" class="glass-btn bg-gray-600/70">Cancel</button>
+      <button id="confirmOverlay" class="glass-btn bg-blue-600/70">Submit</button>
+    </div>
+  </div>
+</div>
 
   <!-- TOURNAMENT CORE LOGIC -->
   <script type="module" src="tournament.js"></script>
@@ -317,6 +329,27 @@
       origSetItem.apply(this, arguments);
       if(k==="lastTournamentId" && typeof v==="string" && v.length) enableButtons(v);
     };
+
+    // --- OVERLAY POPUP LOGIC ---
+    const openOverlayPopup = document.getElementById("openOverlayPopup");
+    const overlayPopup = document.getElementById("overlayPopup");
+    const cancelOverlay = document.getElementById("cancelOverlay");
+    const confirmOverlay = document.getElementById("confirmOverlay");
+    const overlayIdInput = document.getElementById("overlayIdInput");
+
+    if (openOverlayPopup && overlayPopup && cancelOverlay && confirmOverlay) {
+      openOverlayPopup.onclick = () => overlayPopup.classList.remove("hidden");
+      cancelOverlay.onclick = () => overlayPopup.classList.add("hidden");
+      confirmOverlay.onclick = () => {
+        const id = overlayIdInput.value.trim();
+        if (!/^\d{4}$/.test(id)) {
+          alert("Please enter a valid 4-digit scoreboard ID.");
+          return;
+        }
+        overlayPopup.classList.add("hidden");
+        window.open(`tournament-score-overlay.html?id=${id}`, "_blank");
+      };
+    }
   </script>
 </body>
 </html>
