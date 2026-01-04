@@ -92,6 +92,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import {
       getFirestore, collection, onSnapshot, query, orderBy
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -276,6 +277,7 @@
           <div id="analytics-${g.id}" class="mt-4"></div>
         </div>`;
     }
-  </script>
+  
+</script>
 </body>
 </html>

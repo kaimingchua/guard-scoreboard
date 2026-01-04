@@ -934,39 +934,7 @@
   };
 
   // ---- Facebook Share (real) ----
-  window.shareScoreboardToFacebook = async function() {
-    try {
-      await document.fonts.ready;
-      const node = document.getElementById("playerContainer");
-      const bg = document.documentElement.classList.contains("dark") ? "#111827" : "#faf3e0";
-      const canvas = await html2canvas(node, { backgroundColor: bg, scale: 2 });
-      const dataUrl = canvas.toDataURL("image/png");
-      const base64 = dataUrl.split(",")[1];
 
-      // Upload to ImgBB (simple anonymous host)
-      const apiKey = "41bca9e040d3b313b1c5534806590902";
-      const fd = new FormData();
-      fd.append("image", base64);
-
-      const resp = await fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, { method: "POST", body: fd });
-      const json = await resp.json();
-      if (!json.success) throw new Error("Upload failed");
-
-      const imgUrl = json.data.url;
-      const sharePage = `https://kaimingchua.github.io/guard-scoreboard/share.html?img=${encodeURIComponent(imgUrl)}`;
-
-      window.open(
-        `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(sharePage)}`,
-        "_blank",
-        "width=600,height=500"
-      );
-    } catch (err) {
-      console.error("Share error:", err);
-      alert("Failed to share scoreboard. Check console.");
-    }
-  };
-
-  // ---- Live sharing / collaboration ----
   window.toggleLiveSharing = async function toggleLiveSharing() {
     if (!window.__live?.db) {
       alert("Live sharing not available (Firebase not initialized).");

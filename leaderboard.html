@@ -6,139 +6,45 @@
   <title>Guard Leaderboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    body {
-      background: radial-gradient(circle at top left, #0f172a, #111827, #000);
-      color: #e5e7eb;
-      min-height: 100vh;
-      font-family: system-ui, sans-serif;
-    }
+    body { background: radial-gradient(circle at top left, #0f172a, #111827, #000); color:#e5e7eb; min-height:100vh; font-family: system-ui, sans-serif; }
+    @font-face { font-family:'BebasNeue-Regular'; src:url('fonts/BebasNeue-Regular.otf') format('opentype'); font-weight:normal; font-style:normal; }
+    h1,h2,.bebas { font-family:'BebasNeue-Regular', system-ui, sans-serif; letter-spacing:0.05em; }
 
-    @font-face {
-      font-family: 'BebasNeue-Regular';
-      src: url('fonts/BebasNeue-Regular.otf') format('opentype');
-      font-weight: normal;
-      font-style: normal;
-    }
+    .glass { background: rgba(30,41,59,0.55); border:1px solid rgba(147,197,253,0.4); backdrop-filter: blur(12px); box-shadow:0 0 14px rgba(59,130,246,0.12); }
+    .glass-card { background: rgba(30,41,59,0.55); border:1px solid rgba(147,197,253,0.4); backdrop-filter: blur(12px); border-radius:0.75rem; box-shadow:0 0 14px rgba(59,130,246,0.12); padding:1rem; transition: transform .2s ease, box-shadow .2s ease; }
+    .glass-card:hover { transform: translateY(-3px); box-shadow:0 0 20px rgba(59,130,246,0.25); }
 
-    h1, h2, .bebas {
-      font-family: 'BebasNeue-Regular', system-ui, sans-serif;
-      letter-spacing: 0.05em;
-    }
-
-    .glass {
-      background: rgba(30,41,59,0.55);
-      border: 1px solid rgba(147,197,253,0.4);
-      backdrop-filter: blur(12px);
-      box-shadow: 0 0 14px rgba(59,130,246,0.12);
-    }
-
-    .glass-card {
-      background: rgba(30,41,59,0.55);
-      border: 1px solid rgba(147,197,253,0.4);
-      backdrop-filter: blur(12px);
-      border-radius: 0.75rem;
-      box-shadow: 0 0 14px rgba(59,130,246,0.12);
-      padding: 1rem;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-    .glass-card:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 0 20px rgba(59,130,246,0.25);
-    }
-
-    .pill {
-      background: rgba(255,255,255,0.10);
-      border: 1px solid rgba(255,255,255,0.18);
-      backdrop-filter: blur(10px);
-      border-radius: 999px;
-      padding: 0.35rem 0.7rem;
-    }
-
+    .pill { background: rgba(255,255,255,0.10); border:1px solid rgba(255,255,255,0.18); backdrop-filter: blur(10px); border-radius:999px; padding:0.35rem 0.7rem; }
     .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
 
-    /* === Scoreboard-style glass buttons === */
-    .glass-btn {
-        font-family: 'BebasNeue-Regular', system-ui, sans-serif;
-        letter-spacing: 0.05em;
-        padding: 0.4rem 0.9rem;
-        border-radius: 0.5rem;
-        border: 1px solid rgba(255,255,255,0.25);
-        background: rgba(255,255,255,0.10);
-        backdrop-filter: blur(10px);
-        color: #e5e7eb;
-        transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
-    }
+    .glass-btn { font-family:'BebasNeue-Regular', system-ui, sans-serif; letter-spacing:0.05em; padding:0.4rem 0.9rem; border-radius:0.5rem; border:1px solid rgba(255,255,255,0.25); background: rgba(255,255,255,0.10); backdrop-filter: blur(10px); color:#e5e7eb; transition: background .2s ease, box-shadow .2s ease, transform .15s ease; user-select:none; white-space:nowrap; }
+    .glass-btn:hover { background: rgba(255,255,255,0.18); box-shadow:0 0 14px rgba(59,130,246,0.35); transform: translateY(-1px); }
+    .glass-btn:active { transform: translateY(0); box-shadow:0 0 6px rgba(59,130,246,0.2); }
+    .glass-btn:disabled { opacity:.45; cursor:not-allowed; }
+    .glass-btn.active { background: rgba(59,130,246,0.22); box-shadow: inset 0 0 0 1px rgba(59,130,246,0.6), 0 0 14px rgba(59,130,246,0.35); }
 
-    .glass-btn:hover {
-        background: rgba(255,255,255,0.18);
-        box-shadow: 0 0 14px rgba(59,130,246,0.35);
-        transform: translateY(-1px);
-    }
+    .glass-toggle { display:inline-flex; align-items:center; gap:0.45rem; cursor:pointer; font-family:'BebasNeue-Regular', system-ui, sans-serif; letter-spacing:0.05em; padding:0.4rem 0.9rem; border-radius:0.5rem; border:1px solid rgba(255,255,255,0.25); background: rgba(255,255,255,0.10); backdrop-filter: blur(10px); color:#e5e7eb; transition: background .2s ease, box-shadow .2s ease, transform .15s ease; user-select:none; white-space:nowrap; }
+    .glass-toggle:hover { background: rgba(255,255,255,0.18); box-shadow:0 0 14px rgba(59,130,246,0.35); transform: translateY(-1px); }
+    .glass-toggle:active { transform: translateY(0); box-shadow:0 0 6px rgba(59,130,246,0.2); }
+    .glass-toggle input { display:none; }
+    .glass-toggle input:checked + span { background: rgba(59,130,246,0.25); box-shadow: inset 0 0 0 1px rgba(59,130,246,0.6), 0 0 14px rgba(59,130,246,0.45); }
+    .glass-toggle span { padding:0.1rem 0.45rem; border-radius:0.35rem; }
 
-    .glass-btn:active {
-        transform: translateY(0);
-        box-shadow: 0 0 6px rgba(59,130,246,0.2);
-    }
+    .select-glass { background: rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.18); color:#e5e7eb; padding:0.4rem 0.6rem; border-radius:0.5rem; outline:none; }
+    .select-glass:focus { box-shadow:0 0 0 2px rgba(59,130,246,0.4); }
 
-    .glass-btn:disabled {
-        opacity: 0.45;
-        cursor: not-allowed;
-    }
-
-    .glass-toggle {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.45rem;
-        cursor: pointer;
-
-        font-family: 'BebasNeue-Regular', system-ui, sans-serif;
-        letter-spacing: 0.05em;
-
-        padding: 0.4rem 0.9rem;
-        border-radius: 0.5rem;
-        border: 1px solid rgba(255,255,255,0.25);
-        background: rgba(255,255,255,0.10);
-        backdrop-filter: blur(10px);
-        color: #e5e7eb;
-
-        transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
-    }
-
-    .glass-toggle:hover {
-        background: rgba(255,255,255,0.18);
-        box-shadow: 0 0 14px rgba(59,130,246,0.35);
-        transform: translateY(-1px);
-    }
-
-    .glass-toggle input {
-        display: none;
-    }
-
-    /* ON state */
-    .glass-toggle input:checked + span {
-        background: rgba(59,130,246,0.25);
-        box-shadow: inset 0 0 0 1px rgba(59,130,246,0.6), 0 0 14px rgba(59,130,246,0.45);
-    }
-
-    /* Inner label chip */
-    .glass-toggle span {
-        padding: 0.1rem 0.45rem;
-        border-radius: 0.35rem;
-    }
-
+    .crown { width:18px; height:18px; display:inline-block; vertical-align:-3px; margin-left:6px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.35)); }
   </style>
 </head>
 <body>
-
-  <!-- Header -->
   <div class="fixed top-0 left-0 w-full px-4 py-2 flex items-center justify-between glass z-50">
     <div class="flex items-center gap-3">
       <span class="text-blue-300 font-extrabold text-xl tracking-wide bebas">Guard!</span>
       <span class="text-gray-300 text-sm pill">Leaderboard</span>
     </div>
     <div class="flex items-center gap-2">
-        <a href="./index.html" class="glass-btn bebas text-sm">Scoreboard</a>
-        <a href="./live.html" class="glass-btn bebas text-sm" target="_blank" rel="noopener noreferrer">Live Games</a>
+      <a href="./index.html" class="glass-btn text-sm">Scoreboard</a>
+      <a href="./live.html" class="glass-btn text-sm" target="_blank" rel="noopener noreferrer">Live Games</a>
     </div>
   </div>
 
@@ -147,25 +53,32 @@
       <div>
         <h1 class="text-4xl md:text-5xl font-extrabold text-blue-300">Guard Leaderboard</h1>
         <p class="text-gray-300 text-sm mt-1">
-          Earnings are aggregated from past games in Firestore (<span class="mono">guard</span> collection).
+          Rankings are aggregated from past games in Firestore (<span class="mono">guard</span> collection).
         </p>
       </div>
 
       <div class="flex flex-col sm:flex-row gap-2 sm:items-center">
         <input id="search" class="pill w-full sm:w-72 text-sm bg-white/5 focus:outline-none focus:ring-2 focus:ring-blue-400/60"
-               placeholder="Search player (e.g. KM, JL, JY)"/>
+               placeholder="Search player (e.g. KM, JL, NT)"/>
         <label class="glass-toggle text-sm select-none">
-        <input id="includeLive" type="checkbox" />
-        <span>Include Live</span>
+          <input id="includeLive" type="checkbox" />
+          <span id="liveToggleText">Live: OFF</span>
         </label>
         <button id="refresh" class="glass-btn text-sm">Refresh</button>
       </div>
     </div>
 
+    <div class="flex flex-wrap gap-2 mb-4">
+      <button class="glass-btn text-sm active" data-cat="earnings">Earnings</button>
+      <button class="glass-btn text-sm" data-cat="fouls">Fouls</button>
+      <button class="glass-btn text-sm" data-cat="bc">Break Clears</button>
+      <button class="glass-btn text-sm" data-cat="golden">Golden Breaks</button>
+    </div>
+
     <div class="grid gap-4 md:grid-cols-3">
       <div class="glass-card md:col-span-2">
         <div class="flex items-center justify-between mb-3">
-          <h2 class="text-2xl font-bold text-blue-300">Rankings</h2>
+          <h2 class="text-2xl font-bold text-blue-300" id="tableTitle">Earnings Ranking</h2>
           <div class="text-xs text-gray-400">
             Last updated: <span id="lastUpdated">-</span>
           </div>
@@ -177,48 +90,71 @@
               <tr class="text-gray-300 text-sm border-b border-white/10">
                 <th class="py-2 pr-2 w-16">#</th>
                 <th class="py-2 pr-2">Player</th>
-                <th class="py-2 pr-2 text-right">Earnings</th>
+                <th class="py-2 pr-2 text-right" id="metricHeader">Earnings</th>
                 <th class="py-2 pr-2 text-right">Games</th>
-                <th class="py-2 pr-2 text-right">Avg / Game</th>
+                <th class="py-2 pr-2 text-right" id="avgHeader">Avg / Game</th>
               </tr>
             </thead>
             <tbody id="rows" class="text-sm"></tbody>
           </table>
         </div>
 
-        <p id="empty" class="text-sm text-gray-400 mt-4 hidden">
-          No finished games found yet.
-        </p>
+        <p id="empty" class="text-sm text-gray-400 mt-4 hidden">No finished games found yet.</p>
       </div>
 
-      <div class="glass-card">
-        <h2 class="text-2xl font-bold text-blue-300 mb-3">Data Quality</h2>
-        <div class="text-sm text-gray-300 space-y-3">
-          <div>
-            <div class="text-xs text-gray-400 mb-1">Unknown player IDs</div>
-            <ul id="unknown" class="text-xs text-gray-300 list-disc pl-5 space-y-1 max-h-48 overflow-auto"></ul>
-            <p id="unknownEmpty" class="text-xs text-gray-500 hidden">None 🎉</p>
-          </div>
+      <div class="glass-card space-y-4">
+        <div>
+          <h2 class="text-2xl font-bold text-blue-300 mb-2">Manual Merge</h2>
+          <p class="text-xs text-gray-300 mb-3">
+            If you have legacy IDs (e.g. <span class="pill text-xs">NOBEL</span>) that should count under a canonical ID
+            (e.g. <span class="pill text-xs">NT</span>), add a merge rule here. Merges are stored locally in your browser.
+          </p>
 
-          <div class="pt-2 border-t border-white/10">
+          <div class="grid grid-cols-1 gap-2">
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <div class="text-xs text-gray-400 mb-1">Merge FROM</div>
+                <select id="mergeFrom" class="select-glass w-full"></select>
+              </div>
+              <div>
+                <div class="text-xs text-gray-400 mb-1">Into (TO)</div>
+                <select id="mergeTo" class="select-glass w-full"></select>
+              </div>
+            </div>
+
+            <div class="flex gap-2 flex-wrap">
+              <button id="mergeBtn" class="glass-btn text-sm">Merge</button>
+              <button id="removeMergeBtn" class="glass-btn text-sm">Remove merge</button>
+              <button id="resetMergesBtn" class="glass-btn text-sm">Reset all</button>
+            </div>
+
+            <div class="pt-3 border-t border-white/10">
+              <div class="text-xs text-gray-400 mb-1">Current merges</div>
+              <ul id="mergeList" class="text-xs text-gray-300 list-disc pl-5 space-y-1 max-h-28 overflow-auto"></ul>
+              <p id="mergeListEmpty" class="text-xs text-gray-500 hidden">None</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-2 border-t border-white/10">
+          <h3 class="text-lg font-bold text-blue-300 bebas">Data Quality</h3>
+          <div class="text-xs text-gray-400 mb-1 mt-2">Unknown player IDs (seen in Firestore)</div>
+          <ul id="unknown" class="text-xs text-gray-300 list-disc pl-5 space-y-1 max-h-32 overflow-auto"></ul>
+          <p id="unknownEmpty" class="text-xs text-gray-500 hidden">None 🎉</p>
+
+          <div class="pt-3 border-t border-white/10 mt-3">
             <div class="text-xs text-gray-400 mb-1">Scanned games</div>
             <div class="text-2xl font-extrabold bebas" id="gamesCount">0</div>
             <div class="text-xs text-gray-500">Ended (and optionally live).</div>
-          </div>
-
-          <div class="pt-2 border-t border-white/10">
-            <div class="text-xs text-gray-400 mb-1">Notes</div>
-            <p class="text-xs text-gray-300">
-              This page assumes Firestore <span class="mono">players</span> values are already canonical player IDs
-              (e.g. KM, JL, JY). Any values outside the known ID list appear above.
-            </p>
           </div>
         </div>
       </div>
     </div>
 
     <div class="text-xs text-gray-500 mt-6">
-      Tip: If you want this page to be reachable from your Controls panel, add a button/link in <span class="mono">index.html</span>.
+      Notes: <span class="mono">Earnings</span> uses final scores.
+      <span class="mono">Fouls</span>, <span class="mono">BC</span>, <span class="mono">Golden</span> use <span class="mono">actionStats</span> in game docs.
+      Manual merges are saved to <span class="mono">localStorage</span> only.
     </div>
   </div>
 
@@ -226,7 +162,6 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getFirestore, collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    // --- Firebase (same as index.html / live.html) ---
     const firebaseConfig = {
       apiKey: "AIzaSyC_jSYoQLlsYvyMkE4fZ4bHFz2fkE70shk",
       authDomain: "guard-scoreboard.firebaseapp.com",
@@ -240,42 +175,99 @@
     const app = initializeApp(firebaseConfig);
     const db  = getFirestore(app);
 
-    // IDs only (safe for public repo)
     const CANON_IDS = new Set(["KM","JL","JY","NT","EP","JT","DD","NK"]);
 
-    // --- UI ---
+    const MERGE_KEY = "guard.leaderboardMerges";
+    function loadMerges(){ try { return JSON.parse(localStorage.getItem(MERGE_KEY) || "{}") || {}; } catch { return {}; } }
+    function saveMerges(obj){ localStorage.setItem(MERGE_KEY, JSON.stringify(obj || {})); }
+    function resolveId(id, merges){
+      let cur = String(id || "").trim().toUpperCase();
+      const seen = new Set();
+      while (merges[cur] && merges[cur] !== cur) {
+        if (seen.has(cur)) break;
+        seen.add(cur);
+        cur = String(merges[cur]).trim().toUpperCase();
+      }
+      return cur;
+    }
+
     const rowsEl = document.getElementById("rows");
     const emptyEl = document.getElementById("empty");
     const lastUpdatedEl = document.getElementById("lastUpdated");
     const searchEl = document.getElementById("search");
     const includeLiveEl = document.getElementById("includeLive");
+    const liveToggleTextEl = document.getElementById("liveToggleText");
     const refreshBtn = document.getElementById("refresh");
+
+    const tableTitleEl = document.getElementById("tableTitle");
+    const metricHeaderEl = document.getElementById("metricHeader");
+    const avgHeaderEl = document.getElementById("avgHeader");
+
     const unknownEl = document.getElementById("unknown");
     const unknownEmptyEl = document.getElementById("unknownEmpty");
     const gamesCountEl = document.getElementById("gamesCount");
 
-    let cachedRanking = [];
+    const mergeFromEl = document.getElementById("mergeFrom");
+    const mergeToEl = document.getElementById("mergeTo");
+    const mergeBtn = document.getElementById("mergeBtn");
+    const removeMergeBtn = document.getElementById("removeMergeBtn");
+    const resetMergesBtn = document.getElementById("resetMergesBtn");
+    const mergeListEl = document.getElementById("mergeList");
+    const mergeListEmptyEl = document.getElementById("mergeListEmpty");
 
-    function money(n) {
-      const v = Number(n || 0);
-      return (v >= 0 ? "+" : "") + v.toFixed(0);
+    const catBtns = Array.from(document.querySelectorAll("[data-cat]"));
+
+    let cached = { earnings: [], fouls: [], bc: [], golden: [] };
+    let cachedAllSeenIds = new Set();
+    let currentCat = "earnings";
+
+    function crownSvg(fill){
+      return `<svg class="crown" viewBox="0 0 64 64" aria-hidden="true">
+        <path fill="${fill}" d="M6 22c0-1.7 1.4-3 3-3 1 0 1.9.5 2.5 1.2L22 34l10-18c.6-1 1.7-1.6 3-1.6s2.4.6 3 1.6l10 18 10.5-13.8C61.1 19.5 62 19 63 19c1.7 0 3 1.3 3 3 0 .7-.2 1.3-.6 1.9L53 44H19L6.6 23.9c-.4-.6-.6-1.2-.6-1.9z" transform="translate(-2,0) scale(0.97)"/>
+        <path fill="rgba(255,255,255,0.28)" d="M16 44h36v10c0 2.2-1.8 4-4 4H20c-2.2 0-4-1.8-4-4V44z"/>
+      </svg>`;
+    }
+    function crownForRank(rank){
+      if (rank===1) return crownSvg("#facc15");
+      if (rank===2) return crownSvg("#c0c0c0");
+      if (rank===3) return crownSvg("#cd7f32");
+      return "";
     }
 
-    function renderTable(list, q) {
-      const queryText = (q || "").trim().toLowerCase();
+    function formatSignedInt(n){
+      const v = Number(n||0);
+      return (v>=0?"+":"") + v.toFixed(0);
+    }
+
+    function renderCategoryHeaders(cat){
+      if (cat==="earnings"){ tableTitleEl.textContent="Earnings Ranking"; metricHeaderEl.textContent="Earnings"; avgHeaderEl.textContent="Avg / Game"; }
+      else if (cat==="fouls"){ tableTitleEl.textContent="Fouls Ranking"; metricHeaderEl.textContent="Fouls"; avgHeaderEl.textContent="Avg / Game"; }
+      else if (cat==="bc"){ tableTitleEl.textContent="Break Clears Ranking"; metricHeaderEl.textContent="Break Clears"; avgHeaderEl.textContent="Avg / Game"; }
+      else { tableTitleEl.textContent="Golden Breaks Ranking"; metricHeaderEl.textContent="Golden Breaks"; avgHeaderEl.textContent="Avg / Game"; }
+    }
+
+    function valueCell(cat, v){
+      if (cat==="earnings") return formatSignedInt(v);
+      return String(Number(v||0).toFixed(0));
+    }
+    function valueClass(cat, v){
+      if (cat!=="earnings") return "text-gray-100";
+      const n = Number(v||0);
+      return n>0 ? "text-emerald-300" : (n<0 ? "text-red-300" : "text-gray-200");
+    }
+
+    function renderTable(list, q, cat){
+      const queryText = (q||"").trim().toLowerCase();
       const filtered = !queryText ? list : list.filter(r => String(r.id).toLowerCase().includes(queryText));
 
       rowsEl.innerHTML = "";
-      if (!filtered.length) {
-        emptyEl.classList.remove("hidden");
-        return;
-      }
+      if (!filtered.length) { emptyEl.classList.remove("hidden"); return; }
       emptyEl.classList.add("hidden");
 
       filtered.forEach((r, idx) => {
-        const rank = idx + 1;
-        const avg = r.games ? (r.total / r.games) : 0;
-        const signClass = r.total > 0 ? "text-emerald-300" : (r.total < 0 ? "text-red-300" : "text-gray-200");
+        const rank = idx+1;
+        const avg = r.games ? (r.value / r.games) : 0;
+        const crown = crownForRank(rank);
 
         rowsEl.insertAdjacentHTML("beforeend", `
           <tr class="border-b border-white/5 hover:bg-white/5 transition">
@@ -283,37 +275,110 @@
             <td class="py-2 pr-2">
               <div class="flex items-center gap-2">
                 <span class="pill text-xs">${r.id}</span>
+                ${crown}
               </div>
             </td>
-            <td class="py-2 pr-2 text-right font-extrabold bebas ${signClass}">${money(r.total)}</td>
+            <td class="py-2 pr-2 text-right font-extrabold bebas ${valueClass(cat, r.value)}">${valueCell(cat, r.value)}</td>
             <td class="py-2 pr-2 text-right text-gray-200">${r.games}</td>
-            <td class="py-2 pr-2 text-right text-gray-300">${(avg >= 0 ? "+" : "") + avg.toFixed(1)}</td>
+            <td class="py-2 pr-2 text-right text-gray-300">${(avg>=0?"+":"") + avg.toFixed(1)}</td>
           </tr>
         `);
       });
     }
 
-    function renderUnknown(set) {
-      const items = Array.from(set).sort((a,b) => a.localeCompare(b));
+    function renderUnknown(set){
+      const items = Array.from(set).filter(Boolean).sort((a,b)=>a.localeCompare(b));
       unknownEl.innerHTML = "";
-      if (!items.length) {
-        unknownEmptyEl.classList.remove("hidden");
-        return;
-      }
+      if (!items.length) { unknownEmptyEl.classList.remove("hidden"); return; }
       unknownEmptyEl.classList.add("hidden");
-      for (const name of items) {
+      items.forEach(name => {
         const li = document.createElement("li");
         li.textContent = name;
         unknownEl.appendChild(li);
-      }
+      });
     }
 
-    async function load() {
-      const includeLive = !!includeLiveEl.checked;
+    function fillSelect(el, items, preferred){
+      el.innerHTML = "";
+      const sorted = Array.from(items).filter(Boolean).sort((a,b)=>a.localeCompare(b));
+      sorted.forEach(it => {
+        const opt = document.createElement("option");
+        opt.value = it;
+        opt.textContent = it;
+        el.appendChild(opt);
+      });
+      if (preferred && sorted.includes(preferred)) el.value = preferred;
+    }
 
-      const totals = new Map(); // id -> { total, games }
+    function renderMergeList(merges){
+      const entries = Object.entries(merges).filter(([k,v])=>k&&v&&k!==v).sort((a,b)=>a[0].localeCompare(b[0]));
+      mergeListEl.innerHTML = "";
+      if (!entries.length){ mergeListEmptyEl.classList.remove("hidden"); return; }
+      mergeListEmptyEl.classList.add("hidden");
+      entries.forEach(([from,to]) => {
+        const li = document.createElement("li");
+        li.textContent = `${from} → ${to}`;
+        mergeListEl.appendChild(li);
+      });
+    }
+
+    function refreshMergeUI(){
+      const merges = loadMerges();
+      fillSelect(mergeFromEl, cachedAllSeenIds.size ? cachedAllSeenIds : new Set(["(none)"]));
+      const toSet = new Set([...CANON_IDS, ...cachedAllSeenIds]);
+      fillSelect(mergeToEl, toSet, "NT");
+      renderMergeList(merges);
+    }
+
+    function safeSetMerge(from, to){
+      const f = String(from||"").trim().toUpperCase();
+      const t = String(to||"").trim().toUpperCase();
+      if (!f || !t) return {ok:false, msg:"Pick both FROM and TO."};
+      if (f===t) return {ok:false, msg:"FROM and TO cannot be the same."};
+
+      const merges = loadMerges();
+      const resolvedTo = resolveId(t, merges);
+
+      // cycle check
+      let cur = resolvedTo;
+      const seen = new Set();
+      while (merges[cur]){
+        if (cur===f) return {ok:false, msg:"That would create a merge cycle."};
+        if (seen.has(cur)) break;
+        seen.add(cur);
+        cur = merges[cur];
+      }
+
+      merges[f] = resolvedTo;
+      saveMerges(merges);
+      return {ok:true, msg:`Merged ${f} → ${resolvedTo}`};
+    }
+
+    function removeMerge(from){
+      const f = String(from||"").trim().toUpperCase();
+      const merges = loadMerges();
+      if (!merges[f]) return {ok:false, msg:"No merge exists for that FROM value."};
+      delete merges[f];
+      saveMerges(merges);
+      return {ok:true, msg:`Removed merge for ${f}`};
+    }
+
+    function setActiveCategory(cat){
+      currentCat = cat;
+      catBtns.forEach(btn => btn.classList.toggle("active", btn.dataset.cat === cat));
+      renderCategoryHeaders(cat);
+      renderTable(cached[cat] || [], searchEl.value, cat);
+    }
+
+    async function load(){
+      const includeLive = !!includeLiveEl.checked;
+      liveToggleTextEl.textContent = includeLive ? "Live: ON" : "Live: OFF";
+
+      const merges = loadMerges();
+      const agg = new Map();
       const unknown = new Set();
       let scanned = 0;
+      const allSeenIds = new Set();
 
       const q = query(collection(db, "guard"), orderBy("updatedAt", "desc"));
       const snap = await getDocs(q);
@@ -323,56 +388,69 @@
         const status = g.status || "unknown";
         const isEnded = status === "ended";
         const isLive  = status === "live";
-
         if (!isEnded && !(includeLive && isLive)) return;
 
         const players = g.players || {};
         const scores  = g.scores  || {};
+        const stats   = g.actionStats || {};
         const pids = Object.keys(players);
-
         if (!pids.length) return;
+
         scanned++;
 
-        for (const pid of pids) {
-          const id = String(players[pid] || "").trim().toUpperCase();
-          if (!id) continue;
+        for (const pid of pids){
+          const raw = String(players[pid] || "").trim().toUpperCase();
+          if (!raw) continue;
+          allSeenIds.add(raw);
 
-          // If you want to STRICTLY ignore unknown IDs, uncomment:
-          // if (!CANON_IDS.has(id)) { unknown.add(id); continue; }
+          const id = resolveId(raw, merges);
           if (!CANON_IDS.has(id)) unknown.add(id);
 
-          const val = Number(scores[pid] ?? 0);
+          const pidKey = String(pid);
+          const earning = Number(scores[pid] ?? 0);
+          const foulCnt = Number((stats.foul && (stats.foul[pidKey] ?? stats.foul[Number(pid)])) ?? 0);
+          const bcCnt   = Number((stats.bc && (stats.bc[pidKey] ?? stats.bc[Number(pid)])) ?? 0);
+          const goldCnt = Number((stats.golden && (stats.golden[pidKey] ?? stats.golden[Number(pid)])) ?? 0);
 
-          if (!totals.has(id)) totals.set(id, { id, total: 0, games: 0 });
-          const row = totals.get(id);
-          row.total += val;
+          if (!agg.has(id)) agg.set(id, { id, games:0, earnings:0, fouls:0, bc:0, golden:0 });
+          const row = agg.get(id);
           row.games += 1;
+          row.earnings += earning;
+          row.fouls += foulCnt;
+          row.bc += bcCnt;
+          row.golden += goldCnt;
         }
       });
 
+      cachedAllSeenIds = allSeenIds;
       gamesCountEl.textContent = String(scanned);
       renderUnknown(unknown);
 
-      const ranking = Array.from(totals.values())
-        .sort((a,b) => (b.total - a.total) || (b.games - a.games) || a.id.localeCompare(b.id));
+      const arr = Array.from(agg.values());
+      const mk = (field) => arr
+        .map(r => ({ id:r.id, games:r.games, value:r[field] }))
+        .sort((a,b) => (b.value - a.value) || (b.games - a.games) || a.id.localeCompare(b.id));
 
-      cachedRanking = ranking;
+      cached.earnings = mk("earnings");
+      cached.fouls    = mk("fouls");
+      cached.bc       = mk("bc");
+      cached.golden   = mk("golden");
+
       lastUpdatedEl.textContent = new Date().toLocaleString();
-
-      renderTable(ranking, searchEl.value);
+      refreshMergeUI();
+      setActiveCategory(currentCat);
     }
 
-    // UI wiring
-    searchEl.addEventListener("input", () => renderTable(cachedRanking, searchEl.value));
+    searchEl.addEventListener("input", () => renderTable(cached[currentCat] || [], searchEl.value, currentCat));
     includeLiveEl.addEventListener("change", load);
     refreshBtn.addEventListener("click", load);
+    catBtns.forEach(btn => btn.addEventListener("click", () => setActiveCategory(btn.dataset.cat)));
 
-    // boot
-    load().catch(err => {
-      console.error(err);
-      emptyEl.classList.remove("hidden");
-      emptyEl.textContent = "Failed to load leaderboard. Check console.";
-    });
+    mergeBtn.addEventListener("click", () => { const res = safeSetMerge(mergeFromEl.value, mergeToEl.value); if (!res.ok) alert(res.msg); load(); });
+    removeMergeBtn.addEventListener("click", () => { const res = removeMerge(mergeFromEl.value); if (!res.ok) alert(res.msg); load(); });
+    resetMergesBtn.addEventListener("click", () => { if (!confirm("Reset all manual merges on this device?")) return; saveMerges({}); load(); });
+
+    load().catch(err => { console.error(err); emptyEl.classList.remove("hidden"); emptyEl.textContent = "Failed to load leaderboard. Check console."; });
   </script>
 </body>
 </html>
