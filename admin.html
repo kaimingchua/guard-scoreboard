@@ -178,11 +178,65 @@
     const app = initializeApp(firebaseConfig);
     const db  = getFirestore(app);
 
-    const pw = prompt("Enter admin password:");
-    if (pw !== "0646") {
-      document.body.innerHTML = "<div class='p-10 text-center text-red-600 font-bold text-xl'>Access Denied</div>";
-      throw new Error("Access denied");
+    const ADMIN_UIDS = [
+      S1cYgPoLOaZARkSJgvr3Vrd6CtQ2
+    ];
+
+    // Simple gate UI
+    const gate = document.createElement("div");
+    gate.className = "p-10 max-w-xl mx-auto text-center";
+    gate.innerHTML = `
+      <div class="text-3xl font-extrabold text-blue-300 mb-3">Admin Access</div>
+      <div class="text-gray-200 mb-6">Sign in to continue.</div>
+      <button id="adminSignIn" class="glass-btn px-6 py-3 text-xl">Sign in with Google</button>
+      <div id="adminMsg" class="mt-4 text-sm text-gray-300"></div>
+    `;
+    document.body.prepend(gate);
+
+    function deny(msg) {
+      const m = document.getElementById("adminMsg");
+      if (m) m.textContent = msg || "Access denied.";
+      Array.from(document.body.children).forEach((el, idx) => {
+        if (idx === 0) return; // keep gate
+        el.style.display = "none";
+      });
     }
+
+    function allow() {
+      // Remove the gate and show the UI
+      gate.remove();
+      Array.from(document.body.children).forEach(el => el.style.display = "");
+    }
+
+    // Auth
+    import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    const auth = getAuth(app);
+
+    document.getElementById("adminSignIn").addEventListener("click", async () => {
+      try {
+        const provider = new GoogleAuthProvider();
+        await signInWithPopup(auth, provider);
+      } catch (e) {
+        console.error(e);
+        deny("Sign-in failed. Check console.");
+      }
+    });
+
+    onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        deny("Not signed in.");
+        return;
+      }
+      if (!ADMIN_UIDS.length) {
+        deny("Admin UID list not set. Add your UID to ADMIN_UIDS in admin.html.");
+        return;
+      }
+      if (!ADMIN_UIDS.includes(user.uid)) {
+        deny("Signed in, but not authorized for admin.");
+        return;
+      }
+      allow();
+    });
 
     const guardGamesWrap = document.getElementById("guardGames");
     const guardPastWrap  = document.getElementById("guardPastGames");
