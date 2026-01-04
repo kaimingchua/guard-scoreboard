@@ -445,6 +445,8 @@
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app-check.js";
     import {
       getFirestore, collection, doc, addDoc, setDoc, updateDoc, getDocs, getDoc,
       serverTimestamp, onSnapshot, query, orderBy, where
@@ -463,13 +465,49 @@
     const app = initializeApp(firebaseConfig);
     const db  = getFirestore(app);
   
-    window.__live = { 
+    
+
+// ==============================
+// SECURITY: Anonymous Auth + App Check
+// ==============================
+// 1) Firebase Console -> Authentication -> enable Anonymous
+// 2) Firebase Console -> App Check -> enable for Web + enforce for Firestore
+//    Paste your reCAPTCHA v3 SITE KEY below.
+const APP_CHECK_SITE_KEY = "";
+
+// App Check (skip if you haven't set the site key yet)
+try {
+  if (APP_CHECK_SITE_KEY && !APP_CHECK_SITE_KEY.startsWith("PASTE_")) {
+    initializeAppCheck(app, {
+      provider: new ReCaptchaV3Provider(APP_CHECK_SITE_KEY),
+      isTokenAutoRefreshEnabled: true
+    });
+  } else {
+    console.warn("[AppCheck] Skipped (set APP_CHECK_SITE_KEY to enable).");
+  }
+} catch (e) {
+  console.warn("[AppCheck] init failed:", e);
+}
+
+// Anonymous Auth: required so Firestore rules can require request.auth != null
+const auth = getAuth(app);
+signInAnonymously(auth).catch((e) => console.warn("[Auth] anonymous sign-in failed:", e));
+
+// Expose UID for other scripts (e.g. script.js) and bind to existing clientId storage key
+onAuthStateChanged(auth, (user) => {
+  if (!user) return;
+  try {
+    window.__AUTH_UID__ = user.uid;
+    localStorage.setItem("guard.clientId", user.uid);
+  } catch {}
+});
+window.__live = { 
       db, 
       fns: { collection, doc, addDoc, setDoc, updateDoc, getDocs, getDoc,
         query, orderBy, serverTimestamp, onSnapshot, where }
     };
   </script>  
-  <script src="script.js"></script>
+  <script src="script.js" defer></script>
   <script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js"></script>
 </body>
 </html>
