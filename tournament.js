@@ -45,9 +45,18 @@ function shuffle(array) {
 }
 
 function getStageName(roundIdx, totalRounds) {
-  if (totalRounds === 3) return ["Quarterfinals", "Semifinals", "Finals"][roundIdx];
-  if (totalRounds === 4) return ["Round of 16", "Quarterfinals", "Semifinals", "Finals"][roundIdx];
-  if (totalRounds === 5) return ["Round of 32", "Round of 16", "Quarterfinals", "Semifinals", "Finals"][roundIdx];
+  if (totalRounds === 3)
+    return ["Quarterfinals", "Semifinals", "Finals"][roundIdx];
+  if (totalRounds === 4)
+    return ["Round of 16", "Quarterfinals", "Semifinals", "Finals"][roundIdx];
+  if (totalRounds === 5)
+    return [
+      "Round of 32",
+      "Round of 16",
+      "Quarterfinals",
+      "Semifinals",
+      "Finals",
+    ][roundIdx];
   return `Round ${roundIdx + 1}`;
 }
 
@@ -150,7 +159,10 @@ async function advanceWinnerIfReady(tournamentId, tData, matchDoc) {
     const race = tData?.raceTo?.[roundKey];
     const isEndedFlag = status === "ended";
     const reachedRace =
-      typeof race === "number" && race > 0 && (s1 >= race || s2 >= race) && s1 !== s2;
+      typeof race === "number" &&
+      race > 0 &&
+      (s1 >= race || s2 >= race) &&
+      s1 !== s2;
 
     if (!isEndedFlag && !reachedRace) return;
 
@@ -161,7 +173,15 @@ async function advanceWinnerIfReady(tournamentId, tData, matchDoc) {
     const winnerSide = s1 > s2 ? "p1" : "p2";
     const winnerName = s1 > s2 ? p1Name : p2Name;
 
-    const updatedCurrent = { ...m, p1: p1Name, p2: p2Name, score1: s1, score2: s2, winner: winnerSide, status: "ended" };
+    const updatedCurrent = {
+      ...m,
+      p1: p1Name,
+      p2: p2Name,
+      score1: s1,
+      score2: s2,
+      winner: winnerSide,
+      status: "ended",
+    };
     currentArr[matchIndex] = updatedCurrent;
 
     const currentRoundNum = parseInt(roundKey.replace(/\D+/g, ""), 10);
@@ -186,7 +206,14 @@ async function advanceWinnerIfReady(tournamentId, tData, matchDoc) {
 
     const targetIndex = Math.floor(matchIndex / 2);
     const targetSide = matchIndex % 2 === 0 ? "p1" : "p2";
-    const targetMatch = nextArr[targetIndex] || { p1: null, p2: null, score1: 0, score2: 0, winner: null, status: "pending" };
+    const targetMatch = nextArr[targetIndex] || {
+      p1: null,
+      p2: null,
+      score1: 0,
+      score2: 0,
+      winner: null,
+      status: "pending",
+    };
 
     const placed = { ...targetMatch, [targetSide]: winnerName };
     placed.status = placed.p1 && placed.p2 ? "live" : "pending";
@@ -214,7 +241,7 @@ function renderBracket(container, roundsArray, tData, tournamentId) {
 
   const totalRounds = roundsArray.length;
   const colSpacing = 400;
-  const cardWidth  = 220;
+  const cardWidth = 220;
   const cardHeight = 300;
   const firstRoundMatches = roundsArray[0]?.length || 1;
   const rowSpacing = Math.max(140, 600 / firstRoundMatches);
@@ -276,7 +303,7 @@ function renderBracket(container, roundsArray, tData, tournamentId) {
       }
 
       card.style.left = `${left}px`;
-      card.style.top  = `${top}px`;
+      card.style.top = `${top}px`;
       cardPositions[roundIdx][idx] = top;
 
       // --- HEADER (round tag + scoreboard ID) ---
@@ -286,7 +313,9 @@ function renderBracket(container, roundsArray, tData, tournamentId) {
       leftTag.className = "stage-tag";
       leftTag.textContent = `${prefix}${idx + 1}`;
       const rightTag = document.createElement("span");
-      rightTag.textContent = match?.scoreboardCode ? `ID: ${match.scoreboardCode}` : "";
+      rightTag.textContent = match?.scoreboardCode
+        ? `ID: ${match.scoreboardCode}`
+        : "";
       header.appendChild(leftTag);
       header.appendChild(rightTag);
       card.appendChild(header);
@@ -314,21 +343,21 @@ function renderBracket(container, roundsArray, tData, tournamentId) {
   // DRAW CONNECTORS
   requestAnimationFrame(() => {
     drawConnectors(cardPositions, colSpacing, cardWidth, cardHeight);
-  
+
     const bracketWrap = document.getElementById("bracketWrap");
-  
+
     const viewportHeight = window.innerHeight - 220; // padding for header + controls
-    const viewportWidth  = window.innerWidth - 80;   // padding for controls
-    const bracketHeight  = bracketWrap.scrollHeight;
-    const bracketWidth   = bracketWrap.scrollWidth;
-  
+    const viewportWidth = window.innerWidth - 80; // padding for controls
+    const bracketHeight = bracketWrap.scrollHeight;
+    const bracketWidth = bracketWrap.scrollWidth;
+
     let scale = 1;
     if (bracketHeight > viewportHeight || bracketWidth > viewportWidth) {
       const scaleH = viewportHeight / bracketHeight;
       const scaleW = viewportWidth / bracketWidth;
       scale = Math.min(scaleH, scaleW);
     }
-  
+
     bracketWrap.style.transform = `scale(${scale})`;
     bracketWrap.style.transformOrigin = "top left";
   });
@@ -373,13 +402,16 @@ function drawConnectors(cardPositions, colSpacing, cardWidth, cardHeight) {
       [i, i + 1].forEach((j) => {
         if (j >= cardPositions[r].length) return;
 
-        const LEFT_OFFSET = 20; 
+        const LEFT_OFFSET = 20;
         const x1 = r * colSpacing + cardWidth + LEFT_OFFSET;
         const y1 = cardPositions[r][j] + cardHeight / 2;
         const midX = (x1 + x2) / 2;
 
         const pathData = `M${x1},${y1} H${midX} V${y2} H${x2}`;
-        const el = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        const el = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "path",
+        );
         el.setAttribute("d", pathData);
         el.setAttribute("fill", "none");
 
@@ -435,54 +467,65 @@ document.addEventListener("DOMContentLoaded", () => {
       const tData = snap.data();
 
       // Render using absolute positioning and draw connectors
-      renderBracket(bracketEl, normalizeRounds(tData.rounds), tData, tournamentId);
+      renderBracket(
+        bracketEl,
+        normalizeRounds(tData.rounds),
+        tData,
+        tournamentId,
+      );
 
-    // --- NOTICE BOARD ---
-    const noticeContent = document.getElementById("noticeContent");
-    const noticeHeader = document.getElementById("noticeHeader");
-    const toggleNotice = document.getElementById("toggleNotice");
-    const noticeInput = document.getElementById("noticeInput");
-    const sendNotice = document.getElementById("sendNotice");
+      // --- NOTICE BOARD ---
+      const noticeContent = document.getElementById("noticeContent");
+      const noticeHeader = document.getElementById("noticeHeader");
+      const toggleNotice = document.getElementById("toggleNotice");
+      const noticeInput = document.getElementById("noticeInput");
+      const sendNotice = document.getElementById("sendNotice");
 
-    let collapsed = false;
-    noticeHeader.onclick = () => {
-      collapsed = !collapsed;
-      noticeContent.style.display = collapsed ? "none" : "block";
-      toggleNotice.textContent = collapsed ? "+" : "−";
-    };
+      let collapsed = false;
+      noticeHeader.onclick = () => {
+        collapsed = !collapsed;
+        noticeContent.style.display = collapsed ? "none" : "block";
+        toggleNotice.textContent = collapsed ? "+" : "−";
+      };
 
-    // LIVE UPDATES
-    onSnapshot(
-      query(collection(db, "tournaments", tournamentId, "notices"), orderBy("createdAt","desc")),
-      (snap) => {
-        noticeContent.innerHTML = "";
-        snap.forEach(docSnap => {
-          const n = docSnap.data();
-          const ts = n.createdAt?.toDate?.() || new Date();
-          const timeStr = ts.toLocaleDateString("en-GB") + " " + ts.toLocaleTimeString("en-GB");
-          const item = document.createElement("div");
-          item.className = "notice-item";
-          item.innerHTML = `<div>${n.message}</div><div class="notice-time">${timeStr}</div>`;
-          noticeContent.appendChild(item);
-        });
-      }
-    );
+      // LIVE UPDATES
+      onSnapshot(
+        query(
+          collection(db, "tournaments", tournamentId, "notices"),
+          orderBy("createdAt", "desc"),
+        ),
+        (snap) => {
+          noticeContent.innerHTML = "";
+          snap.forEach((docSnap) => {
+            const n = docSnap.data();
+            const ts = n.createdAt?.toDate?.() || new Date();
+            const timeStr =
+              ts.toLocaleDateString("en-GB") +
+              " " +
+              ts.toLocaleTimeString("en-GB");
+            const item = document.createElement("div");
+            item.className = "notice-item";
+            item.innerHTML = `<div>${n.message}</div><div class="notice-time">${timeStr}</div>`;
+            noticeContent.appendChild(item);
+          });
+        },
+      );
 
-    // SENDING NOTICES
-    sendNotice.onclick = async () => {
-      const msg = noticeInput.value.trim();
-      if (!msg) return;
-      try {
-        await addDoc(collection(db, "tournaments", tournamentId, "notices"), {
-          message: msg,
-          createdAt: serverTimestamp()
-        });
-        noticeInput.value = "";
-      } catch (err) {
-        console.error("Failed to send notice:", err);
-        alert("Error sending notice: " + err.message);
-      }
-    };
+      // SENDING NOTICES
+      sendNotice.onclick = async () => {
+        const msg = noticeInput.value.trim();
+        if (!msg) return;
+        try {
+          await addDoc(collection(db, "tournaments", tournamentId, "notices"), {
+            message: msg,
+            createdAt: serverTimestamp(),
+          });
+          noticeInput.value = "";
+        } catch (err) {
+          console.error("Failed to send notice:", err);
+          alert("Error sending notice: " + err.message);
+        }
+      };
 
       // END BUTTON
       endBtn.classList.remove("hidden");
@@ -496,11 +539,14 @@ document.addEventListener("DOMContentLoaded", () => {
           const qLive = query(
             collection(db, "tournament-match"),
             where("tournamentId", "==", tournamentId),
-            where("status", "==", "live")
+            where("status", "==", "live"),
           );
           const liveSnap = await getDocs(qLive);
           for (const m of liveSnap.docs) {
-            await updateDoc(m.ref, { status: "ended", updatedAt: serverTimestamp() });
+            await updateDoc(m.ref, {
+              status: "ended",
+              updatedAt: serverTimestamp(),
+            });
           }
           alert("Tournament ended successfully.");
         } catch (err) {
@@ -511,7 +557,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // Auto-create scoreboard sessions when both players exist
       for (const [roundKey, matches] of Object.entries(tData.rounds || {})) {
-        const safeRound = Array.isArray(matches) ? matches : Object.values(matches);
+        const safeRound = Array.isArray(matches)
+          ? matches
+          : Object.values(matches);
 
         for (let idx = 0; idx < safeRound.length; idx++) {
           const match = safeRound[idx];
@@ -529,7 +577,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 collection(db, "tournament-match"),
                 where("tournamentId", "==", tournamentId),
                 where("roundKey", "==", roundKey),
-                where("matchIndex", "==", idx)
+                where("matchIndex", "==", idx),
               );
               const existingSnap = await getDocs(qExisting);
               if (!existingSnap.empty) {
@@ -549,7 +597,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 createdAt: serverTimestamp(),
                 updatedAt: serverTimestamp(),
               };
-              const sbRef = await addDoc(collection(db, "tournament-match"), payload);
+              const sbRef = await addDoc(
+                collection(db, "tournament-match"),
+                payload,
+              );
 
               const updatedMatches = [...safeRound];
               updatedMatches[idx] = {
@@ -563,7 +614,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 updatedAt: serverTimestamp(),
               });
             } catch (err) {
-              console.error("[tournament] Failed to auto-create scoreboard:", err);
+              console.error(
+                "[tournament] Failed to auto-create scoreboard:",
+                err,
+              );
             }
           }
         }
@@ -574,7 +628,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (unsubscribeMatches) unsubscribeMatches();
     const qMatches = query(
       collection(db, "tournament-match"),
-      where("tournamentId", "==", tournamentId)
+      where("tournamentId", "==", tournamentId),
     );
     unsubscribeMatches = onSnapshot(qMatches, async (snap) => {
       const tSnap = await getDoc(doc(db, "tournaments", tournamentId));
@@ -589,7 +643,10 @@ document.addEventListener("DOMContentLoaded", () => {
         const s2 = data.scores?.[2] ?? 0;
         const race = tData?.raceTo?.[rKey];
         const raceReached =
-          typeof race === "number" && race > 0 && (s1 >= race || s2 >= race) && s1 !== s2;
+          typeof race === "number" &&
+          race > 0 &&
+          (s1 >= race || s2 >= race) &&
+          s1 !== s2;
 
         if (data.status === "ended" || raceReached) {
           await advanceWinnerIfReady(tournamentId, tData, mDoc);
@@ -611,7 +668,12 @@ document.addEventListener("DOMContentLoaded", () => {
     const tournamentName = tournamentNameEl.value.trim();
     const tournamentDate = tournamentDateEl.value.trim();
 
-    const players = namesRaw ? namesRaw.split("\n").map((n) => n.trim()).filter(Boolean) : [];
+    const players = namesRaw
+      ? namesRaw
+          .split("\n")
+          .map((n) => n.trim())
+          .filter(Boolean)
+      : [];
     const bracketArray = generateBracket(players, size);
 
     try {
@@ -657,7 +719,10 @@ document.addEventListener("DOMContentLoaded", () => {
               createdAt: serverTimestamp(),
               updatedAt: serverTimestamp(),
             };
-            const sbRef = await addDoc(collection(db, "tournament-match"), payload);
+            const sbRef = await addDoc(
+              collection(db, "tournament-match"),
+              payload,
+            );
             scoreboardId = sbRef.id;
             scoreboardCode = codeStr;
           }

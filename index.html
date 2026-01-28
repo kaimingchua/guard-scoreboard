@@ -1,513 +1,795 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en" class="">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Guard Scoreboard</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    .bebas {
-      font-family: 'BebasNeue-Regular', system-ui, sans-serif !important;
-      letter-spacing: 0.04em;
-    }
-
-    body {
-      background: radial-gradient(circle at top left, #0f172a, #111827, #000);
-      color: #e5e7eb;
-      min-height: 100vh;
-      font-family: system-ui, sans-serif;
-    }
-
-    @font-face {
-      font-family: 'BebasNeue-Regular';
-      src: url('fonts/BebasNeue-Regular.otf') format('opentype');
-      font-weight: normal;
-      font-style: normal;
-    }
-
-    #controlsToggle,
-    #controlsPanel,
-    #controlsPanel button,
-    #controlsPanel input,
-    #controlsPanel label,
-    #scoreboardId,
-    #turnOrderDisplay,
-    #playerContainer input,
-    #playerContainer .score-text,
-    #playerContainer button,
-    .popup,
-    .popup h2,
-    .popup button,
-    .popup-glass,
-    .popup-glass h2,
-    .popup-glass button {
-    font-family: 'BebasNeue-Regular', system-ui, sans-serif !important;
-    letter-spacing: 0.04em;
-    }
-
-    #playerContainer button {
-      font-size: 1.5rem;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      padding: 0.6rem 1rem;
-    }    
-
-    /* Glass effect */
-    .glass {
-      background: rgba(30,41,59,0.55);
-      border: 1px solid rgba(147,197,253,0.4);
-      backdrop-filter: blur(12px);
-      box-shadow: 0 0 14px rgba(59,130,246,0.12);
-    }
-
-    /* Player glass cards */
-    .glass-card {
-      background: rgba(30,41,59,0.55);
-      border: 1px solid rgba(147,197,253,0.4);
-      backdrop-filter: blur(10px);
-      border-radius: 0.75rem;
-      padding: 1rem;
-      box-shadow: 0 0 12px rgba(59,130,246,0.12);
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-    .glass-card:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 0 20px rgba(59,130,246,0.25);
-    }
-
-    /* Controls panel */
-    #controlsPanel button,
-    #controlsPanel input,
-    #controlsPanel label {
-      font-family: 'BebasNeue-Regular', system-ui, sans-serif;
-      letter-spacing: 0.04em;
-    }
-
-    #scoreboardId {
-      font-size: 1.25rem;
-      color: #93c5fd;
-      cursor: pointer;
-    }
-    
-    #controlsPanel span.text-sm {
-      font-size: 1rem;
-      letter-spacing: 0.03em;
-      font-family: 'BebasNeue-Regular', system-ui, sans-serif !important;
-    }
-
-    #controlsPanel {
-      will-change: max-height;
-      transition: max-height 0.5s ease-in-out;
-    }
-    @media (prefers-reduced-motion: reduce) {
-      #controlsPanel { transition: none !important; }
-    }
-
-    /* Buttons */
-    .btn { @apply px-3 py-1 rounded transition-colors; }
-    .btn-neutral { @apply bg-gray-700 text-white hover:bg-gray-600; }
-    .btn-primary { @apply bg-blue-600 text-white hover:bg-blue-700; }
-    .btn-live { @apply bg-emerald-600 text-white hover:bg-emerald-700; }
-
-    /* Popups */
-    .popup {
-      @apply rounded-lg shadow-lg p-6 relative;
-      background: rgba(30,41,59,0.85);
-      border: 1px solid rgba(147,197,253,0.4);
-      backdrop-filter: blur(14px);
-      color: #e5e7eb;
-    }
-
-    #turnOrderDisplay {
-      font-size: clamp(1.6rem, 2.4vw + 0.4rem, 2.6rem);
-      letter-spacing: 0.04em;
-      margin-bottom: 0.8em;
-    }
-
-    #playerContainer input {
-      font-family: 'BebasNeue-Regular', system-ui, sans-serif;
-      font-size: clamp(1.25rem, 1.2vw + 0.6rem, 2rem);
-      letter-spacing: 0.03em;
-    }
-
-    #playerContainer .score-text {    
-      font-size: clamp(4.5rem, 9vw, 9rem);
-      line-height: 1;
-      letter-spacing: 0.02em;
-      color: #fff !important;
-    }
-
-    /* Glass input fields */
-    .glass-input {
-      background: rgba(255, 255, 255, 0.15);
-      border: 1px solid rgba(255, 255, 255, 0.25);
-      border-radius: 0.5rem;
-      padding: 0.5rem 0.75rem;
-      color: #e5e7eb;
-      backdrop-filter: blur(10px);
-      transition: all 0.2s ease;
-    }
-
-    .glass-input:focus {
-      outline: none;
-      border-color: #60a5fa;
-      box-shadow: 0 0 10px rgba(96,165,250,0.6);
-    }
-
-    /* Adjust placeholder */
-    .glass-input::placeholder {
-      color: rgba(229, 231, 235, 0.6);
-    }
-
-    /* Glass labels & text */
-    .glass-label {
-      color: #cbd5e1;
-      font-weight: 500;
-    }
-
-    /* Controls Panel */
-    #controlsPanel {
-      background: rgba(30, 41, 59, 0.65) !important;
-      border: 1px solid rgba(147, 197, 253, 0.3);
-      backdrop-filter: blur(12px);
-      border-radius: 0.75rem;
-      box-shadow: 0 0 20px rgba(59, 130, 246, 0.15);
-    }
-
-    /* Glassy Buttons */
-    .glass-btn {
-      background: rgba(255, 255, 255, 0.12);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      color: #e5e7eb;
-      border-radius: 0.5rem;
-      padding: 0.4rem 0.9rem;
-      font-weight: 500;
-      font-family: inherit;
-      backdrop-filter: blur(10px);
-      transition: all 0.2s ease;
-    }
-
-    .glass-btn:hover {
-      background: rgba(255, 255, 255, 0.2);
-      border-color: rgba(255, 255, 255, 0.35);
-      box-shadow: 0 0 10px rgba(255,255,255,0.25);
-    }
-
-    /* Special Glassy Buttons */
-    .glass-btn-primary {
-      background: linear-gradient(135deg, rgba(37,99,235,0.9), rgba(29,78,216,0.9));
-      border: 1px solid rgba(59,130,246,0.6);
-      color: #fff;
-    }
-    .glass-btn-primary:hover {
-      box-shadow: 0 0 12px rgba(59,130,246,0.7);
-    }
-
-    .glass-btn-emerald {
-      background: linear-gradient(135deg, rgba(16,185,129,0.9), rgba(5,150,105,0.9));
-      border: 1px solid rgba(16,185,129,0.6);
-      color: #fff;
-    }
-
-    .glass-btn-emerald:hover {
-      box-shadow: 0 0 12px rgba(16,185,129,0.7);
-    }
-
-    #zoomSlider {
-      accent-color: #60a5fa;
-      cursor: pointer;
-    }
-
-    /* Popups */
-    .popup-glass {
-      background: rgba(30, 41, 59, 0.65) !important;
-      border: 1px solid rgba(147,197,253,0.3);
-      border-radius: 0.75rem;
-      backdrop-filter: blur(16px);
-      box-shadow: 0 0 25px rgba(59,130,246,0.25);
-      color: #e5e7eb !important;
-    }
-
-    /* Headings inside popups */
-    .popup-glass h2 {
-      color: #93c5fd !important;
-    }
-
-    /* Popup close button */
-    .popup-glass button {
-      color: #e5e7eb;
-    }
-
-    /* Glass Join Button */
-    #joinSessionBtn {
-      background: rgba(255,255,255,0.15);
-      border: 1px solid rgba(255,255,255,0.25);
-      backdrop-filter: blur(12px);
-      border-radius: 0.5rem;
-      padding: 0.4rem 0.9rem;
-      color: #e5e7eb;
-      transition: all 0.2s ease;
-    }
-
-    #joinSessionBtn:hover {
-      background: rgba(255,255,255,0.25);
-      box-shadow: 0 0 12px rgba(255,255,255,0.3);
-    }
-
-    .glass-input {
-      background: rgba(255,255,255,0.12);
-      border: 1px solid rgba(255,255,255,0.25);
-      color: #e5e7eb;
-      border-radius: 0.5rem;
-      padding: 0.4rem 0.6rem;
-      backdrop-filter: blur(10px);
-    }
-    
-    .glass-input:focus {
-      outline: none;
-      border-color: rgba(147,197,253,0.5);
-      box-shadow: 0 0 8px rgba(147,197,253,0.4);
-    }
-
-    /* Center score between name and buttons */
-    .player-card-content {
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      align-items: center;
-      gap: 1.5rem;
-      height: 100%;
-    }
-
-    @keyframes glowToGreen {
-      0%   { color: #fff; text-shadow: none; }
-      50%  { 
-        color: #22c55e; 
-        text-shadow: 
-        0 0 8px rgba(34,197,94,0.8),
-        0 0 16px rgba(34,197,94,0.7),
-        0 0 24px rgba(34,197,94,0.6);
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Guard Scoreboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      .bebas {
+        font-family: "BebasNeue-Regular", system-ui, sans-serif !important;
+        letter-spacing: 0.04em;
       }
-      100% { color: #fff; text-shadow: none; }
-    }
 
-    @keyframes glowToRed {
-      0%   { color: #fff; text-shadow: none; }
-      50%  { 
-        color: #ef4444; 
-        text-shadow: 
-        0 0 8px rgba(239,68,68,0.8),
-        0 0 16px rgba(239,68,68,0.7),
-        0 0 24px rgba(239,68,68,0.6);
+      body {
+        background: radial-gradient(circle at top left, #0f172a, #111827, #000);
+        color: #e5e7eb;
+        min-height: 100vh;
+        font-family: system-ui, sans-serif;
       }
-      100% { color: #fff; text-shadow: none; }
-    }
 
-    .score-glow-green {
-      animation: glowToGreen 1.5s ease-in-out;
-    }
+      @font-face {
+        font-family: "BebasNeue-Regular";
+        src: url("fonts/BebasNeue-Regular.otf") format("opentype");
+        font-weight: normal;
+        font-style: normal;
+      }
 
-    .score-glow-red {
-      animation: glowToRed 1.5s ease-in-out;
-    }
-  </style>
-</head>
-<body class="min-h-screen">
+      #controlsToggle,
+      #controlsPanel,
+      #controlsPanel button,
+      #controlsPanel input,
+      #controlsPanel label,
+      #scoreboardId,
+      #turnOrderDisplay,
+      #playerContainer input,
+      #playerContainer .score-text,
+      #playerContainer button,
+      .popup,
+      .popup h2,
+      .popup button,
+      .popup-glass,
+      .popup-glass h2,
+      .popup-glass button {
+        font-family: "BebasNeue-Regular", system-ui, sans-serif !important;
+        letter-spacing: 0.04em;
+      }
 
-  <!-- Header -->
-  <div class="fixed top-0 left-0 w-full px-4 py-2 flex items-center justify-between glass z-50">
-    <span class="text-blue-300 font-extrabold text-xl tracking-wide">Guard!</span>
-    <div class="flex items-center gap-2">
-      <a href="./leaderboard.html" target="_blank" rel="noopener noreferrer" class="glass-btn bebas text-sm px-3 py-1">Leaderboard</a>
-      <a href="./live.html" target="_blank" rel="noopener noreferrer" class="glass-btn bebas text-sm px-3 py-1">Live Matches</a>
-      <button id="controlsToggle" class="glass-btn bebas text-sm px-3 py-1" aria-expanded="false" aria-controls="controlsPanel">
-      Controls ▾
-    </button>
-  
-    </div>
-  </div>
+      #playerContainer button {
+        font-size: 1.5rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        padding: 0.6rem 1rem;
+      }
 
-  <!-- Controls Panel -->
-  <div id="controlsPanel"
-    class="fixed left-0 right-0 top-[44px] mx-auto glass overflow-hidden max-h-0 z-40">
-    <div class="px-4 py-3 grid grid-cols-1 md:grid-cols-3 items-center gap-4 gap-y-3">
-      
-      <!-- Left: Action buttons -->
-      <div class="flex flex-wrap gap-2">
-        <button onclick="showHelp()" class="glass-btn">Help</button>
-        <button onclick="clearGameData()" class="glass-btn">Clear</button>
-        <button onclick="showHistory()" class="glass-btn">History</button>
-        <button onclick="undoLastAction()" class="glass-btn">Undo</button>
-        <button onclick="showAnalytics()" class="glass-btn">Analytics</button>
-        <button onclick="shareScoreboardToFacebook()" class="glass-btn glass-btn-primary">Share</button>
-        <button id="liveToggle" onclick="toggleLiveSharing()" class="glass-btn glass-btn-emerald">Live OFF</button>
-        <button id="togglePlayerCount" onclick="togglePlayerMode()" class="glass-btn">3 Players Mode</button>
-        </div>      
-      
-      <!-- Middle: Rate inputs -->
-      <div class="flex justify-center flex-wrap gap-4">
-        <label class="font-bold flex items-center gap-1">
-          Win: <input type="number" id="winRate" value="3" class="glass-input w-16 text-center" />
-        </label>
-        <label class="font-bold flex items-center gap-1">
-          Foul: <input type="number" id="foulRate" value="1" class="glass-input w-16 text-center" />
-        </label>
-        <label class="font-bold flex items-center gap-1">
-          BC: <input type="number" id="bcRate" value="5" class="glass-input w-16 text-center" />
-        </label>
+      #playerContainer .player-action-btn {
+        font-size: 1.1rem !important;
+        letter-spacing: 0.03em !important;
+        padding: 0.45rem 0.75rem !important;
+        line-height: 1.2;
+        white-space: nowrap;
+        overflow: hidden;
+        box-sizing: border-box;
+      }
+
+      /* Glass effect */
+      .glass {
+        background: rgba(30, 41, 59, 0.55);
+        border: 1px solid rgba(147, 197, 253, 0.4);
+        backdrop-filter: blur(12px);
+        box-shadow: 0 0 14px rgba(59, 130, 246, 0.12);
+      }
+
+      /* Player glass cards */
+      .glass-card {
+        background: rgba(30, 41, 59, 0.55);
+        border: 1px solid rgba(147, 197, 253, 0.4);
+        backdrop-filter: blur(10px);
+        border-radius: 0.75rem;
+        padding: 1rem;
+        box-shadow: 0 0 12px rgba(59, 130, 246, 0.12);
+        transition:
+          transform 0.2s ease,
+          box-shadow 0.2s ease;
+      }
+
+      .glass-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 0 20px rgba(59, 130, 246, 0.25);
+      }
+
+      /* Controls panel */
+      #controlsPanel button,
+      #controlsPanel input,
+      #controlsPanel label {
+        font-family: "BebasNeue-Regular", system-ui, sans-serif;
+        letter-spacing: 0.04em;
+      }
+
+      #scoreboardId {
+        font-size: 1.25rem;
+        color: #93c5fd;
+        cursor: pointer;
+      }
+
+      #controlsPanel span.text-sm {
+        font-size: 1rem;
+        letter-spacing: 0.03em;
+        font-family: "BebasNeue-Regular", system-ui, sans-serif !important;
+      }
+
+      #controlsPanel {
+        will-change: max-height;
+        transition: max-height 0.5s ease-in-out;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        #controlsPanel {
+          transition: none !important;
+        }
+      }
+
+      /* Buttons */
+      .btn {
+        @apply px-3 py-1 rounded transition-colors;
+      }
+
+      .btn-neutral {
+        @apply bg-gray-700 text-white hover:bg-gray-600;
+      }
+
+      .btn-primary {
+        @apply bg-blue-600 text-white hover:bg-blue-700;
+      }
+
+      .btn-live {
+        @apply bg-emerald-600 text-white hover:bg-emerald-700;
+      }
+
+      /* Popups */
+      .popup {
+        @apply rounded-lg shadow-lg p-6 relative;
+        background: rgba(30, 41, 59, 0.85);
+        border: 1px solid rgba(147, 197, 253, 0.4);
+        backdrop-filter: blur(14px);
+        color: #e5e7eb;
+      }
+
+      #turnOrderDisplay {
+        font-size: clamp(1.6rem, 2.4vw + 0.4rem, 2.6rem);
+        letter-spacing: 0.04em;
+        margin-bottom: 0.8em;
+      }
+
+      #playerContainer input {
+        font-family: "BebasNeue-Regular", system-ui, sans-serif;
+        font-size: clamp(1.25rem, 1.2vw + 0.6rem, 2rem);
+        letter-spacing: 0.03em;
+      }
+
+      #playerContainer .score-text {
+        font-size: clamp(4.5rem, 9vw, 9rem);
+        line-height: 1;
+        letter-spacing: 0.02em;
+        color: #fff !important;
+      }
+
+      /* Glass input fields */
+      .glass-input {
+        background: rgba(255, 255, 255, 0.15);
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        border-radius: 0.5rem;
+        padding: 0.5rem 0.75rem;
+        color: #e5e7eb;
+        backdrop-filter: blur(10px);
+        transition: all 0.2s ease;
+      }
+
+      .glass-input:focus {
+        outline: none;
+        border-color: #60a5fa;
+        box-shadow: 0 0 10px rgba(96, 165, 250, 0.6);
+      }
+
+      /* Adjust placeholder */
+      .glass-input::placeholder {
+        color: rgba(229, 231, 235, 0.6);
+      }
+
+      /* Glass labels & text */
+      .glass-label {
+        color: #cbd5e1;
+        font-weight: 500;
+      }
+
+      /* Controls Panel */
+      #controlsPanel {
+        background: rgba(30, 41, 59, 0.65) !important;
+        border: 1px solid rgba(147, 197, 253, 0.3);
+        backdrop-filter: blur(12px);
+        border-radius: 0.75rem;
+        box-shadow: 0 0 20px rgba(59, 130, 246, 0.15);
+      }
+
+      /* Glassy Buttons */
+      .glass-btn {
+        background: rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: #e5e7eb;
+        border-radius: 0.5rem;
+        padding: 0.4rem 0.9rem;
+        font-weight: 500;
+        font-family: inherit;
+        backdrop-filter: blur(10px);
+        transition: all 0.2s ease;
+      }
+
+      .glass-btn:hover {
+        background: rgba(255, 255, 255, 0.2);
+        border-color: rgba(255, 255, 255, 0.35);
+        box-shadow: 0 0 10px rgba(255, 255, 255, 0.25);
+      }
+
+      /* Special Glassy Buttons */
+      .glass-btn-primary {
+        background: linear-gradient(
+          135deg,
+          rgba(37, 99, 235, 0.9),
+          rgba(29, 78, 216, 0.9)
+        );
+        border: 1px solid rgba(59, 130, 246, 0.6);
+        color: #fff;
+      }
+
+      .glass-btn-primary:hover {
+        box-shadow: 0 0 12px rgba(59, 130, 246, 0.7);
+      }
+
+      .glass-btn-emerald {
+        background: linear-gradient(
+          135deg,
+          rgba(16, 185, 129, 0.9),
+          rgba(5, 150, 105, 0.9)
+        );
+        border: 1px solid rgba(16, 185, 129, 0.6);
+        color: #fff;
+      }
+
+      .glass-btn-emerald:hover {
+        box-shadow: 0 0 12px rgba(16, 185, 129, 0.7);
+      }
+
+      .player-action-btn {
+        background: rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        color: #ffffff !important;
+        border-radius: 0.5rem;
+        padding: 0.4rem 0.75rem;
+        font-size: 1rem;
+        line-height: 1.2;
+        white-space: nowrap;
+        backdrop-filter: blur(10px);
+        transition: all 0.2s ease;
+      }
+
+      .player-action-btn:hover {
+        background: rgba(255, 255, 255, 0.22);
+        box-shadow: 0 0 10px rgba(255, 255, 255, 0.25);
+      }
+
+      #zoomSlider {
+        accent-color: #60a5fa;
+        cursor: pointer;
+      }
+
+      /* Popups */
+      .popup-glass {
+        background: rgba(30, 41, 59, 0.65) !important;
+        border: 1px solid rgba(147, 197, 253, 0.3);
+        border-radius: 0.75rem;
+        backdrop-filter: blur(16px);
+        box-shadow: 0 0 25px rgba(59, 130, 246, 0.25);
+        color: #e5e7eb !important;
+      }
+
+      /* Headings inside popups */
+      .popup-glass h2 {
+        color: #93c5fd !important;
+      }
+
+      /* Popup close button */
+      .popup-glass button {
+        color: #e5e7eb;
+      }
+
+      /* Glass Join Button */
+      #joinSessionBtn {
+        background: rgba(255, 255, 255, 0.15);
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        backdrop-filter: blur(12px);
+        border-radius: 0.5rem;
+        padding: 0.4rem 0.9rem;
+        color: #e5e7eb;
+        transition: all 0.2s ease;
+      }
+
+      #joinSessionBtn:hover {
+        background: rgba(255, 255, 255, 0.25);
+        box-shadow: 0 0 12px rgba(255, 255, 255, 0.3);
+      }
+
+      .glass-input {
+        background: rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        color: #e5e7eb;
+        border-radius: 0.5rem;
+        padding: 0.4rem 0.6rem;
+        backdrop-filter: blur(10px);
+      }
+
+      .glass-input:focus {
+        outline: none;
+        border-color: rgba(147, 197, 253, 0.5);
+        box-shadow: 0 0 8px rgba(147, 197, 253, 0.4);
+      }
+
+      /* Center score between name and buttons */
+      .player-card-content {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1.5rem;
+        height: 100%;
+      }
+
+      @keyframes glowToGreen {
+        0% {
+          color: #fff;
+          text-shadow: none;
+        }
+
+        50% {
+          color: #22c55e;
+          text-shadow:
+            0 0 8px rgba(34, 197, 94, 0.8),
+            0 0 16px rgba(34, 197, 94, 0.7),
+            0 0 24px rgba(34, 197, 94, 0.6);
+        }
+
+        100% {
+          color: #fff;
+          text-shadow: none;
+        }
+      }
+
+      @keyframes glowToRed {
+        0% {
+          color: #fff;
+          text-shadow: none;
+        }
+
+        50% {
+          color: #ef4444;
+          text-shadow:
+            0 0 8px rgba(239, 68, 68, 0.8),
+            0 0 16px rgba(239, 68, 68, 0.7),
+            0 0 24px rgba(239, 68, 68, 0.6);
+        }
+
+        100% {
+          color: #fff;
+          text-shadow: none;
+        }
+      }
+
+      .score-glow-green {
+        animation: glowToGreen 1.5s ease-in-out;
+      }
+
+      .score-glow-red {
+        animation: glowToRed 1.5s ease-in-out;
+      }
+    </style>
+  </head>
+
+  <body class="min-h-screen">
+    <!-- Header -->
+    <div
+      class="fixed top-0 left-0 w-full px-4 py-2 flex items-center justify-between glass z-50"
+    >
+      <span class="text-blue-300 font-extrabold text-xl tracking-wide"
+        >Guard!</span
+      >
+      <div class="flex items-center gap-2">
+        <a
+          href="./leaderboard.html"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="glass-btn bebas text-sm px-3 py-1"
+          >Leaderboard</a
+        >
+        <a
+          href="./live.html"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="glass-btn bebas text-sm px-3 py-1"
+          >Live Matches</a
+        >
+        <button
+          id="controlsToggle"
+          class="glass-btn bebas text-sm px-3 py-1"
+          aria-expanded="false"
+          aria-controls="controlsPanel"
+        >
+          Controls ▾
+        </button>
       </div>
-      
-      <!-- Right: Scoreboard ID + Join Session + Zoom -->
-      <div class="flex flex-col items-start md:items-end gap-2">
-        <div class="flex flex-wrap items-center gap-3">
-          <span class="text-sm">Scoreboard ID:
-            <span id="scoreboardId" class="font-mono text-emerald-400 cursor-pointer underline" title="Click to copy">----</span>
-          </span>
-          <button id="joinSessionBtn" onclick="openJoinPopup()" class="glass-btn">Join</button>
+    </div>
+
+    <!-- Controls Panel -->
+    <div
+      id="controlsPanel"
+      class="fixed left-0 right-0 top-[44px] mx-auto glass overflow-hidden max-h-0 z-40"
+    >
+      <div
+        class="px-4 py-3 grid grid-cols-1 md:grid-cols-3 items-center gap-4 gap-y-3"
+      >
+        <!-- Left: Action buttons -->
+        <div class="flex flex-wrap gap-2">
+          <button onclick="showHelp()" class="glass-btn">Help</button>
+          <button onclick="clearGameData()" class="glass-btn">Clear</button>
+          <button onclick="showHistory()" class="glass-btn">History</button>
+          <button onclick="undoLastAction()" class="glass-btn">Undo</button>
+          <button onclick="showAnalytics()" class="glass-btn">Analytics</button>
+          <button
+            id="liveToggle"
+            onclick="toggleLiveSharing()"
+            class="glass-btn glass-btn-emerald"
+          >
+            Live OFF
+          </button>
+          <button
+            id="togglePlayerCount"
+            onclick="togglePlayerMode()"
+            class="glass-btn"
+          >
+            3 Players Mode
+          </button>
         </div>
-        <label class="flex items-center gap-2">
-          <span class="font-bold">Zoom:</span>
-          <input id="zoomSlider" type="range" min="-100" max="100" value="0" />
-        </label>
+
+        <!-- Middle: Rate inputs -->
+        <div class="flex justify-center flex-wrap gap-4">
+          <label class="font-bold flex items-center gap-1">
+            Win:
+            <input
+              type="number"
+              id="winRate"
+              value="5"
+              class="glass-input w-16 text-center"
+            />
+          </label>
+          <label class="font-bold flex items-center gap-1">
+            Foul:
+            <input
+              type="number"
+              id="foulRate"
+              value="2"
+              class="glass-input w-16 text-center"
+            />
+          </label>
+          <label class="font-bold flex items-center gap-1">
+            BC:
+            <input
+              type="number"
+              id="bcRate"
+              value="8"
+              class="glass-input w-16 text-center"
+            />
+          </label>
+        </div>
+
+        <!-- Right: Scoreboard ID + Join Session + Zoom -->
+        <div class="flex flex-col items-start md:items-end gap-2">
+          <div class="flex flex-wrap items-center gap-3">
+            <span class="text-sm"
+              >Scoreboard ID:
+              <span
+                id="scoreboardId"
+                class="font-mono text-emerald-400 cursor-pointer underline"
+                title="Click to copy"
+                >----</span
+              >
+            </span>
+            <button
+              id="joinSessionBtn"
+              onclick="openJoinPopup()"
+              class="glass-btn"
+            >
+              Join
+            </button>
+          </div>
+          <label class="flex items-center gap-2">
+            <span class="font-bold">Zoom:</span>
+            <input
+              id="zoomSlider"
+              type="range"
+              min="-100"
+              max="100"
+              value="0"
+            />
+          </label>
+        </div>
       </div>
-
     </div>
-  </div>
 
-  <!-- Turn Order -->
-  <div id="turnOrderDisplay" class="mt-24 sm:mt-28 mb-2 text-center text-lg font-bold text-blue-300 cursor-pointer hover:underline">
-    Turn: -
-  </div>
-
-  <!-- Players -->
-  <div id="playerContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-4 px-4 pb-28"></div>
-
-  <!-- Popups (Help, History, Analytics, Join) -->
-  <div id="helpPopup" class="fixed inset-0 bg-black bg-opacity-50 hidden fade z-50 flex items-center justify-center">
-    <div class="popup-glass w-11/12 max-w-lg p-4 max-h-[80vh] overflow-y-auto relative">
-      <button onclick="hideHelp()" class="absolute top-2 right-3 text-xl font-bold">&times;</button>
-      <h2 class="text-lg font-bold mb-3">🎱 How to Use the Scoreboard</h2>
-      <ul class="list-disc pl-6 space-y-2 text-sm">
-        <li><strong>WIN:</strong> Adds WIN rate to the shooter and subtracts same from previous player.</li>
-        <li><strong>FOUL+:</strong> Subtracts FOUL rate from shooter and adds to previous player.</li>
-        <li><strong>BC:</strong> Subtracts BC from each opponent and adds to shooter.</li>
-        <li><strong>GOLDEN:</strong> Subtracts WIN from each opponent and adds to shooter.</li>
-        <li><strong>UNDO:</strong> Open History and tap Undo Last Action (or press <kbd>z</kbd>).</li>
-      </ul>
+    <!-- Turn Order -->
+    <div
+      id="turnOrderDisplay"
+      class="mt-24 sm:mt-28 mb-2 text-center text-lg font-bold text-blue-300 cursor-pointer hover:underline"
+    >
+      Turn: -
     </div>
-  </div>
 
-  <div id="historyPopup" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
-    <div class="popup w-11/12 max-w-lg max-h-[80vh] overflow-y-auto">
-      <button onclick="hideHistory()" class="absolute top-2 right-3 text-xl font-bold">&times;</button>
-      <h2 class="text-lg font-bold mb-3">📜 Score History</h2>
-      <button onclick="undoLastAction()" class="glass-btn w-full mb-3">Undo Last Action</button>
-      <ul id="logList" class="text-sm space-y-2"></ul>
-    </div>
-  </div>  
+    <!-- Players -->
+    <div
+      id="playerContainer"
+      class="grid grid-cols-1 sm:grid-cols-2 gap-4 px-4 pb-28"
+    ></div>
 
-  <div id="analyticsPopup" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
-    <div class="popup w-11/12 max-w-3xl">
-      <button onclick="hideAnalytics()" class="absolute top-2 right-3 text-xl font-bold">&times;</button>
-      <h2 class="text-lg font-bold mb-3">📊 Score Analytics</h2>
-      <div class="flex gap-2 mb-4 border-b border-gray-600">
-        <button class="analytics-tab px-3 py-1 rounded-t glass" data-target="scoreChart">Scores</button>
-        <button class="analytics-tab px-3 py-1 rounded-t glass" data-target="foulChart">Total Fouls</button>
-        <button class="analytics-tab px-3 py-1 rounded-t glass" data-target="winChart">Total Wins</button>
-        <button class="analytics-tab px-3 py-1 rounded-t glass" data-target="goldenChart">Golden Breaks</button>
-        <button class="analytics-tab px-3 py-1 rounded-t glass" data-target="bcChart">Break Clears</button>
+    <!-- Popups (Help, History, Analytics, Join) -->
+    <div
+      id="helpPopup"
+      class="fixed inset-0 bg-black bg-opacity-50 hidden fade z-50 flex items-center justify-center"
+    >
+      <div
+        class="popup-glass w-11/12 max-w-lg p-4 max-h-[80vh] overflow-y-auto relative"
+      >
+        <button
+          onclick="hideHelp()"
+          class="absolute top-2 right-3 text-xl font-bold"
+        >
+          &times;
+        </button>
+        <h2 class="text-lg font-bold mb-3">🎱 How to Use the Scoreboard</h2>
+        <ul class="list-disc pl-6 space-y-2 text-sm">
+          <li>
+            <strong>WIN:</strong> Adds WIN rate to the shooter and subtracts
+            same from previous player.
+          </li>
+          <li>
+            <strong>FOUL+:</strong> Subtracts FOUL rate from shooter and adds to
+            previous player.
+          </li>
+          <li>
+            <strong>BC:</strong> Subtracts BC from each opponent and adds to
+            shooter.
+          </li>
+          <li>
+            <strong>GOLDEN:</strong> Subtracts WIN from each opponent and adds
+            to shooter.
+          </li>
+          <li>
+            <strong>DRY CLEAR:</strong> Adds BC rate to the shooter and
+            subtracts same from previous player.
+          </li>
+
+          <li>
+            <strong>UNDO:</strong> Open History and tap Undo Last Action (or
+            press <kbd>z</kbd>).
+          </li>
+        </ul>
       </div>
-      <div class="relative w-full h-80">
-        <canvas id="scoreChart" class="analytics-canvas w-full h-full"></canvas>
-        <canvas id="foulChart" class="analytics-canvas w-full h-full hidden"></canvas>
-        <canvas id="winChart" class="analytics-canvas w-full h-full hidden"></canvas>
-        <canvas id="goldenChart" class="analytics-canvas w-full h-full hidden"></canvas>
-        <canvas id="bcChart" class="analytics-canvas w-full h-full hidden"></canvas>
+    </div>
+
+    <div
+      id="historyPopup"
+      class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center"
+    >
+      <div class="popup w-11/12 max-w-lg max-h-[80vh] overflow-y-auto">
+        <button
+          onclick="hideHistory()"
+          class="absolute top-2 right-3 text-xl font-bold"
+        >
+          &times;
+        </button>
+        <h2 class="text-lg font-bold mb-3">📜 Score History</h2>
+        <button onclick="undoLastAction()" class="glass-btn w-full mb-3">
+          Undo Last Action
+        </button>
+        <ul id="logList" class="text-sm space-y-2"></ul>
       </div>
     </div>
-  </div>
 
-  <!-- Join Session Popup -->
-  <div id="joinPopup" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
-    <div class="popup-glass w-96 p-6 relative">
-    <button onclick="closeJoinPopup()" class="absolute top-2 right-3 text-xl font-bold">&times;</button>
-    <h2 class="text-lg font-bold mb-3">🔗 Join Scoreboard Session</h2>
-    <input id="joinInput" type="text" maxlength="6"
-        class="glass-input w-full mb-3 text-center"
-        placeholder="Enter scoreboard ID (e.g. 1234)" />
-    <button onclick="joinSession()" class="glass-btn glass-btn-emerald w-full">Join</button>
-    <p id="joinError" class="text-red-400 text-sm mt-2 hidden"></p>
+    <div
+      id="analyticsPopup"
+      class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center"
+    >
+      <div class="popup w-11/12 max-w-3xl">
+        <button
+          onclick="hideAnalytics()"
+          class="absolute top-2 right-3 text-xl font-bold"
+        >
+          &times;
+        </button>
+        <h2 class="text-lg font-bold mb-3">📊 Score Analytics</h2>
+        <div class="flex gap-2 mb-4 border-b border-gray-600">
+          <button
+            class="analytics-tab px-3 py-1 rounded-t glass"
+            data-target="scoreChart"
+          >
+            Scores
+          </button>
+          <button
+            class="analytics-tab px-3 py-1 rounded-t glass"
+            data-target="foulChart"
+          >
+            Total Fouls
+          </button>
+          <button
+            class="analytics-tab px-3 py-1 rounded-t glass"
+            data-target="winChart"
+          >
+            Total Wins
+          </button>
+          <button
+            class="analytics-tab px-3 py-1 rounded-t glass"
+            data-target="goldenChart"
+          >
+            Golden Breaks
+          </button>
+          <button
+            class="analytics-tab px-3 py-1 rounded-t glass"
+            data-target="bcChart"
+          >
+            Break Clears
+          </button>
+          <button
+            class="analytics-tab px-3 py-1 rounded-t glass"
+            data-target="dryChart"
+          >
+            Dry Clears
+          </button>
+        </div>
+        <div class="relative w-full h-80">
+          <canvas
+            id="scoreChart"
+            class="analytics-canvas w-full h-full"
+          ></canvas>
+          <canvas
+            id="foulChart"
+            class="analytics-canvas w-full h-full hidden"
+          ></canvas>
+          <canvas
+            id="winChart"
+            class="analytics-canvas w-full h-full hidden"
+          ></canvas>
+          <canvas
+            id="goldenChart"
+            class="analytics-canvas w-full h-full hidden"
+          ></canvas>
+          <canvas
+            id="bcChart"
+            class="analytics-canvas w-full h-full hidden"
+          ></canvas>
+          <canvas
+            id="dryChart"
+            class="analytics-canvas w-full h-full hidden"
+          ></canvas>
+        </div>
+      </div>
     </div>
-  </div>  
 
-  <!-- Firebase + Scripts -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app-check.js";
-    import {
-      getFirestore, collection, doc, addDoc, setDoc, updateDoc, getDocs, getDoc,
-      serverTimestamp, onSnapshot, query, orderBy, where
-    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-  
-    const firebaseConfig = {
-      apiKey: "AIzaSyC_jSYoQLlsYvyMkE4fZ4bHFz2fkE70shk",
-      authDomain: "guard-scoreboard.firebaseapp.com",
-      projectId: "guard-scoreboard",
-      storageBucket: "guard-scoreboard.firebasestorage.app",
-      messagingSenderId: "491028228431",
-      appId: "1:491028228431:web:4c92700d264f5b1aae3d3a",
-      measurementId: "G-5Z28C6N29L"
-    };
-  
-    const app = initializeApp(firebaseConfig);
-    const db  = getFirestore(app);
-  
-    
+    <!-- Join Session Popup -->
+    <div
+      id="joinPopup"
+      class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center"
+    >
+      <div class="popup-glass w-96 p-6 relative">
+        <button
+          onclick="closeJoinPopup()"
+          class="absolute top-2 right-3 text-xl font-bold"
+        >
+          &times;
+        </button>
+        <h2 class="text-lg font-bold mb-3">🔗 Join Scoreboard Session</h2>
+        <input
+          id="joinInput"
+          type="text"
+          maxlength="6"
+          class="glass-input w-full mb-3 text-center"
+          placeholder="Enter scoreboard ID (e.g. 1234)"
+        />
+        <button
+          onclick="joinSession()"
+          class="glass-btn glass-btn-emerald w-full"
+        >
+          Join
+        </button>
+        <p id="joinError" class="text-red-400 text-sm mt-2 hidden"></p>
+      </div>
+    </div>
 
-// ==============================
-// SECURITY: Anonymous Auth + App Check
-// ==============================
-// 1) Firebase Console -> Authentication -> enable Anonymous
-// 2) Firebase Console -> App Check -> enable for Web + enforce for Firestore
-//    Paste your reCAPTCHA v3 SITE KEY below.
-const APP_CHECK_SITE_KEY = "";
+    <!-- Firebase + Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+      import {
+        getAuth,
+        signInAnonymously,
+        onAuthStateChanged,
+      } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+      import {
+        initializeAppCheck,
+        ReCaptchaV3Provider,
+      } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app-check.js";
+      import {
+        getFirestore,
+        collection,
+        doc,
+        addDoc,
+        setDoc,
+        updateDoc,
+        getDocs,
+        getDoc,
+        serverTimestamp,
+        onSnapshot,
+        query,
+        orderBy,
+        where,
+      } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+      import { firebaseConfig } from "./firebase-config.js";
 
-// App Check (skip if you haven't set the site key yet)
-try {
-  if (APP_CHECK_SITE_KEY && !APP_CHECK_SITE_KEY.startsWith("PASTE_")) {
-    initializeAppCheck(app, {
-      provider: new ReCaptchaV3Provider(APP_CHECK_SITE_KEY),
-      isTokenAutoRefreshEnabled: true
-    });
-  } else {
-    console.warn("[AppCheck] Skipped (set APP_CHECK_SITE_KEY to enable).");
-  }
-} catch (e) {
-  console.warn("[AppCheck] init failed:", e);
-}
+      const app = initializeApp(firebaseConfig);
+      const db = getFirestore(app);
 
-// Anonymous Auth: required so Firestore rules can require request.auth != null
-const auth = getAuth(app);
-signInAnonymously(auth).catch((e) => console.warn("[Auth] anonymous sign-in failed:", e));
+      const APP_CHECK_SITE_KEY = "";
 
-// Expose UID for other scripts (e.g. script.js) and bind to existing clientId storage key
-onAuthStateChanged(auth, (user) => {
-  if (!user) return;
-  try {
-    window.__AUTH_UID__ = user.uid;
-    localStorage.setItem("guard.clientId", user.uid);
-  } catch {}
-});
-window.__live = { 
-      db, 
-      fns: { collection, doc, addDoc, setDoc, updateDoc, getDocs, getDoc,
-        query, orderBy, serverTimestamp, onSnapshot, where }
-    };
-  </script>  
-  <script src="script.js" defer></script>
-  <script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js"></script>
-</body>
+      // App Check (skip if you haven't set the site key yet)
+      try {
+        if (APP_CHECK_SITE_KEY && !APP_CHECK_SITE_KEY.startsWith("PASTE_")) {
+          initializeAppCheck(app, {
+            provider: new ReCaptchaV3Provider(APP_CHECK_SITE_KEY),
+            isTokenAutoRefreshEnabled: true,
+          });
+        } else {
+          console.warn(
+            "[AppCheck] Skipped (set APP_CHECK_SITE_KEY to enable).",
+          );
+        }
+      } catch (e) {
+        console.warn("[AppCheck] init failed:", e);
+      }
+
+      // Anonymous Auth: required so Firestore rules can require request.auth != null
+      const auth = getAuth(app);
+      signInAnonymously(auth).catch((e) =>
+        console.warn("[Auth] anonymous sign-in failed:", e),
+      );
+
+      // Expose UID for other scripts (e.g. script.js) and bind to existing clientId storage key
+      onAuthStateChanged(auth, (user) => {
+        if (!user) return;
+        try {
+          window.__AUTH_UID__ = user.uid;
+          localStorage.setItem("guard.clientId", user.uid);
+        } catch {}
+      });
+      window.__live = {
+        db,
+        fns: {
+          collection,
+          doc,
+          addDoc,
+          setDoc,
+          updateDoc,
+          getDocs,
+          getDoc,
+          query,
+          orderBy,
+          serverTimestamp,
+          onSnapshot,
+          where,
+        },
+      };
+    </script>
+    <script src="script.js" defer></script>
+    <script
+      async
+      defer
+      crossorigin="anonymous"
+      src="https://connect.facebook.net/en_US/sdk.js"
+    ></script>
+  </body>
 </html>

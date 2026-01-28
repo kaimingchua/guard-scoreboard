@@ -1,237 +1,267 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Guard Live Games</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    body {
-      background: radial-gradient(circle at top left, #0f172a, #111827, #000);
-      color: #e5e7eb;
-      min-height: 100vh;
-      font-family: 'Bebas Neue', sans-serif;
-    }
-
-    @font-face {
-      font-family: 'Bebas Neue';
-      src: url('fonts/BebasNeue-Regular.otf') format('opentype');
-      font-weight: normal;
-      font-style: normal;
-    }
-
-    /* Glow animations for score changes */
-    @keyframes glowToGreen {
-      0%   { color: #fff; text-shadow: none; }
-      50%  { 
-        color: #22c55e; 
-        text-shadow: 
-          0 0 8px rgba(34,197,94,0.8),
-          0 0 16px rgba(34,197,94,0.7),
-          0 0 24px rgba(34,197,94,0.6);
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Guard Live Games</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      body {
+        background: radial-gradient(circle at top left, #0f172a, #111827, #000);
+        color: #e5e7eb;
+        min-height: 100vh;
+        font-family: "Bebas Neue", sans-serif;
       }
-      100% { color: #fff; text-shadow: none; }
-    }
 
-    .score-glow {
-      animation: glowToGreen 1.5s ease-in-out;
-    }
+      @font-face {
+        font-family: "Bebas Neue";
+        src: url("fonts/BebasNeue-Regular.otf") format("opentype");
+        font-weight: normal;
+        font-style: normal;
+      }
 
-    /* Glass effect */
-    .glass-card {
-      background: rgba(30,41,59,0.55);
-      border: 1px solid rgba(147,197,253,0.4);
-      backdrop-filter: blur(12px);
-      border-radius: 0.75rem;
-      box-shadow: 0 0 14px rgba(59,130,246,0.12);
-      padding: 1rem;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-    .glass-card:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 0 20px rgba(59,130,246,0.25);
-    }
-
-    h1, h2 {
-      font-family: 'Bebas Neue', sans-serif;
-      color: #93c5fd;
-      letter-spacing: 0.05em;
-    }
-
-    /* Score styling */
-    .score-text {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 2rem;
-      color: #fff;
-      line-height: 1.1;
-    }
-
-    /* Analytics small text */
-    .analytics-text {
-      font-size: 0.75rem;
-      color: #cbd5e1;
-    }
-  </style>
-</head>
-<body>
-  <div class="max-w-6xl mx-auto p-4">
-    <h1 class="text-4xl font-extrabold mb-6">Guard Live Games</h1>
-
-    <!-- Ongoing Games -->
-    <h2 class="text-2xl font-bold mb-4">Ongoing Matches</h2>
-    <div id="games" class="grid gap-6 md:grid-cols-2"></div>
-    <p id="empty" class="text-sm text-gray-400 hidden">
-      No live games yet. Ask someone to turn on “Live score sharing”.
-    </p>
-
-    <!-- Past Matches -->
-    <h2 class="text-2xl font-bold mt-10 mb-4">Past Matches</h2>
-    <div id="pastGames" class="grid gap-6 md:grid-cols-2"></div>
-    <p id="pastEmpty" class="text-sm text-gray-400 hidden">No past matches yet.</p>
-  </div>
-
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import {
-      getFirestore, collection, onSnapshot, query, orderBy
-    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-    // --- Firebase ---
-    const firebaseConfig = {
-      apiKey: "AIzaSyC_jSYoQLlsYvyMkE4fZ4bHFz2fkE70shk",
-      authDomain: "guard-scoreboard.firebaseapp.com",
-      projectId: "guard-scoreboard",
-      storageBucket: "guard-scoreboard.appspot.com",
-      messagingSenderId: "491028228431",
-      appId: "1:491028228431:web:4c92700d264f5b1aae3d3a",
-      measurementId: "G-5Z28C6N29L"
-    };
-    const app = initializeApp(firebaseConfig);
-    const db  = getFirestore(app);
-
-    // --- UI refs ---
-    const gamesWrap = document.getElementById("games");
-    const pastWrap  = document.getElementById("pastGames");
-    const emptyMsg  = document.getElementById("empty");
-    const pastEmpty = document.getElementById("pastEmpty");
-
-    const lastScores = new Map();     
-    const lastHashes = new Map();     
-
-    function stableStringify(obj) {
-      const seen = new WeakSet();
-      const stringify = (x) => {
-        if (x && typeof x === "object") {
-          if (seen.has(x)) return '"[Circular]"';
-          seen.add(x);
-          if (Array.isArray(x)) return "[" + x.map(stringify).join(",") + "]";
-          const keys = Object.keys(x).sort();
-          return "{" + keys.map(k => JSON.stringify(k) + ":" + stringify(x[k])).join(",") + "}";
+      /* Glow animations for score changes */
+      @keyframes glowToGreen {
+        0% {
+          color: #fff;
+          text-shadow: none;
         }
-        return JSON.stringify(x);
+        50% {
+          color: #22c55e;
+          text-shadow:
+            0 0 8px rgba(34, 197, 94, 0.8),
+            0 0 16px rgba(34, 197, 94, 0.7),
+            0 0 24px rgba(34, 197, 94, 0.6);
+        }
+        100% {
+          color: #fff;
+          text-shadow: none;
+        }
+      }
+
+      .score-glow {
+        animation: glowToGreen 1.5s ease-in-out;
+      }
+
+      /* Glass effect */
+      .glass-card {
+        background: rgba(30, 41, 59, 0.55);
+        border: 1px solid rgba(147, 197, 253, 0.4);
+        backdrop-filter: blur(12px);
+        border-radius: 0.75rem;
+        box-shadow: 0 0 14px rgba(59, 130, 246, 0.12);
+        padding: 1rem;
+        transition:
+          transform 0.2s ease,
+          box-shadow 0.2s ease;
+      }
+      .glass-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 0 20px rgba(59, 130, 246, 0.25);
+      }
+
+      h1,
+      h2 {
+        font-family: "Bebas Neue", sans-serif;
+        color: #93c5fd;
+        letter-spacing: 0.05em;
+      }
+
+      /* Score styling */
+      .score-text {
+        font-family: "Bebas Neue", sans-serif;
+        font-size: 2rem;
+        color: #fff;
+        line-height: 1.1;
+      }
+
+      /* Analytics small text */
+      .analytics-text {
+        font-size: 0.75rem;
+        color: #cbd5e1;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="max-w-6xl mx-auto p-4">
+      <h1 class="text-4xl font-extrabold mb-6">Guard Live Games</h1>
+
+      <!-- Ongoing Games -->
+      <h2 class="text-2xl font-bold mb-4">Ongoing Matches</h2>
+      <div id="games" class="grid gap-6 md:grid-cols-2"></div>
+      <p id="empty" class="text-sm text-gray-400 hidden">
+        No live games yet. Ask someone to turn on “Live score sharing”.
+      </p>
+
+      <!-- Past Matches -->
+      <h2 class="text-2xl font-bold mt-10 mb-4">Past Matches</h2>
+      <div id="pastGames" class="grid gap-6 md:grid-cols-2"></div>
+      <p id="pastEmpty" class="text-sm text-gray-400 hidden">
+        No past matches yet.
+      </p>
+    </div>
+
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+      import {
+        getAuth,
+        signInAnonymously,
+        onAuthStateChanged,
+      } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+      import {
+        getFirestore,
+        collection,
+        onSnapshot,
+        query,
+        orderBy,
+      } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+      // --- Firebase ---
+      const firebaseConfig = {
+        apiKey: "AIzaSyC_jSYoQLlsYvyMkE4fZ4bHFz2fkE70shk",
+        authDomain: "guard-scoreboard.firebaseapp.com",
+        projectId: "guard-scoreboard",
+        storageBucket: "guard-scoreboard.appspot.com",
+        messagingSenderId: "491028228431",
+        appId: "1:491028228431:web:4c92700d264f5b1aae3d3a",
+        measurementId: "G-5Z28C6N29L",
       };
-      return stringify(obj);
-    }
+      const app = initializeApp(firebaseConfig);
+      const db = getFirestore(app);
 
-    const q = query(collection(db, "guard"), orderBy("updatedAt", "desc"));
-    onSnapshot(q, (snap) => {
-      const liveGames = [];
-      const pastGames = [];
-      snap.forEach(d => {
-        const data = d.data();
-        const item = { id: d.id, ...data };
-        if (data?.status === "live") liveGames.push(item);
-        else if (data?.status === "ended") pastGames.push(item);
+      // --- UI refs ---
+      const gamesWrap = document.getElementById("games");
+      const pastWrap = document.getElementById("pastGames");
+      const emptyMsg = document.getElementById("empty");
+      const pastEmpty = document.getElementById("pastEmpty");
+
+      const lastScores = new Map();
+      const lastHashes = new Map();
+
+      function stableStringify(obj) {
+        const seen = new WeakSet();
+        const stringify = (x) => {
+          if (x && typeof x === "object") {
+            if (seen.has(x)) return '"[Circular]"';
+            seen.add(x);
+            if (Array.isArray(x)) return "[" + x.map(stringify).join(",") + "]";
+            const keys = Object.keys(x).sort();
+            return (
+              "{" +
+              keys
+                .map((k) => JSON.stringify(k) + ":" + stringify(x[k]))
+                .join(",") +
+              "}"
+            );
+          }
+          return JSON.stringify(x);
+        };
+        return stringify(obj);
+      }
+
+      const q = query(collection(db, "guard"), orderBy("updatedAt", "desc"));
+      onSnapshot(q, (snap) => {
+        const liveGames = [];
+        const pastGames = [];
+        snap.forEach((d) => {
+          const data = d.data();
+          const item = { id: d.id, ...data };
+          if (data?.status === "live") liveGames.push(item);
+          else if (data?.status === "ended") pastGames.push(item);
+        });
+        render(liveGames, pastGames);
       });
-      render(liveGames, pastGames);
-    });
 
-    function render(liveGames, pastGames) {
-      const seen = new Set();
+      function render(liveGames, pastGames) {
+        const seen = new Set();
 
-      // Render live
-      for (const g of liveGames) {
-        const id = g.id;
-        seen.add(id);
-        let card = document.getElementById("card-" + id);
-        if (!card) {
-          gamesWrap.insertAdjacentHTML("beforeend", gameCardHTML(g, false));
-        } else {
-          const codeEl = document.getElementById("code-" + id);
-          if (codeEl) codeEl.textContent = g.joinCode ?? "----";
+        // Render live
+        for (const g of liveGames) {
+          const id = g.id;
+          seen.add(id);
+          let card = document.getElementById("card-" + id);
+          if (!card) {
+            gamesWrap.insertAdjacentHTML("beforeend", gameCardHTML(g, false));
+          } else {
+            const codeEl = document.getElementById("code-" + id);
+            if (codeEl) codeEl.textContent = g.joinCode ?? "----";
+          }
+          updateScores(g);
+          updateAnalytics(g);
         }
-        updateScores(g);
-        updateAnalytics(g);
+
+        Array.from(gamesWrap.querySelectorAll("[data-card]")).forEach((el) => {
+          if (!seen.has(el.dataset.card)) el.remove();
+        });
+
+        // Render past
+        pastWrap.innerHTML = "";
+        for (const g of pastGames) {
+          pastWrap.insertAdjacentHTML("beforeend", gameCardHTML(g, true));
+          updateScores(g);
+          updateAnalytics(g);
+        }
+
+        emptyMsg.classList.toggle("hidden", liveGames.length > 0);
+        pastEmpty.classList.toggle("hidden", pastGames.length > 0);
       }
 
-      Array.from(gamesWrap.querySelectorAll("[data-card]")).forEach(el => {
-        if (!seen.has(el.dataset.card)) el.remove();
-      });
+      function updateScores(g) {
+        const container = document.getElementById("scores-" + g.id);
+        if (!container) return;
 
-      // Render past
-      pastWrap.innerHTML = "";
-      for (const g of pastGames) {
-        pastWrap.insertAdjacentHTML("beforeend", gameCardHTML(g, true));
-        updateScores(g);
-        updateAnalytics(g);
-      }
+        const scores = g.scores || {};
+        const players = g.players || {};
+        const pids = Object.keys(players)
+          .map(Number)
+          .sort((a, b) => a - b);
 
-      emptyMsg.classList.toggle("hidden", liveGames.length > 0);
-      pastEmpty.classList.toggle("hidden", pastGames.length > 0);
-    }
+        const hashNow = stableStringify({ scores, players });
+        const prevHash = lastHashes.get(g.id);
+        if (prevHash === hashNow) return;
 
-    function updateScores(g) {
-      const container = document.getElementById("scores-" + g.id);
-      if (!container) return;
-
-      const scores = g.scores || {};
-      const players = g.players || {};
-      const pids = Object.keys(players).map(Number).sort((a,b)=>a-b);
-
-      const hashNow = stableStringify({scores, players});
-      const prevHash = lastHashes.get(g.id);
-      if (prevHash === hashNow) return;
-
-      let html = '<div class="flex justify-between gap-6">';
-      for (const pid of pids) {
-        html += `
+        let html = '<div class="flex justify-between gap-6">';
+        for (const pid of pids) {
+          html += `
           <div class="flex-1 text-center">
-            <div class="text-blue-300 text-xl mb-1">${players[pid] || ("P" + pid)}</div>
+            <div class="text-blue-300 text-xl mb-1">${players[pid] || "P" + pid}</div>
             <div id="score-${g.id}-${pid}" class="score-text text-3xl md:text-4xl font-extrabold">${scores[pid] ?? 0}</div>
           </div>
         `;
-      }
-      html += "</div>";
-      container.innerHTML = html;
+        }
+        html += "</div>";
+        container.innerHTML = html;
 
-      const prev = lastScores.get(g.id) || {};
-      for (const pid of pids) {
-        const val = scores[pid] ?? 0;
-        if (prev[pid] !== val) {
-          const el = document.getElementById(`score-${g.id}-${pid}`);
-          if (el) {
-            el.classList.remove("score-glow");
-            void el.offsetWidth;
-            el.classList.add("score-glow");
+        const prev = lastScores.get(g.id) || {};
+        for (const pid of pids) {
+          const val = scores[pid] ?? 0;
+          if (prev[pid] !== val) {
+            const el = document.getElementById(`score-${g.id}-${pid}`);
+            if (el) {
+              el.classList.remove("score-glow");
+              void el.offsetWidth;
+              el.classList.add("score-glow");
+            }
           }
         }
+        lastScores.set(g.id, { ...scores });
+        lastHashes.set(g.id, hashNow);
       }
-      lastScores.set(g.id, {...scores});
-      lastHashes.set(g.id, hashNow);
-    }
 
-    function updateAnalytics(g) {
-      const players = g.players || {};
-      const pids = Object.keys(players).map(Number).sort((a,b)=>a-b);
-      const stats = g.actionStats || {};
+      function updateAnalytics(g) {
+        const players = g.players || {};
+        const pids = Object.keys(players)
+          .map(Number)
+          .sort((a, b) => a - b);
+        const stats = g.actionStats || {};
 
-      const renderRowWithBars = (label, counts, color) => {
-        const max = Math.max(1, ...pids.map(id => counts[id] || 0));
-        const bars = pids.map(pid => {
-          const v = counts[pid] || 0;
-          const pct = Math.round((v / max) * 100);
-          return `
+        const renderRowWithBars = (label, counts, color) => {
+          const max = Math.max(1, ...pids.map((id) => counts[id] || 0));
+          const bars = pids
+            .map((pid) => {
+              const v = counts[pid] || 0;
+              const pct = Math.round((v / max) * 100);
+              return `
             <div class="flex-1 text-center analytics-text">
               <div class="mb-0.5">${players[pid]}</div>
               <div class="bg-gray-700 rounded overflow-hidden h-3 mb-0.5">
@@ -239,29 +269,31 @@
               </div>
               <div class="text-[10px]">(${v})</div>
             </div>`;
-        }).join("");
-        return `
+            })
+            .join("");
+          return `
           <div class="mb-3">
             <div class="font-semibold text-xs mb-1 text-gray-300">${label}:</div>
             <div class="flex gap-2">${bars}</div>
           </div>`;
-      };
+        };
 
-      const wrap = document.getElementById("analytics-" + g.id);
-      if (!wrap) return;
-      wrap.innerHTML = [
-        renderRowWithBars("Fouls",        stats.foul   || {}, "#ef4444"),
-        renderRowWithBars("Wins",         stats.win    || {}, "#22c55e"),
-        renderRowWithBars("Golden Breaks",stats.golden || {}, "#6366f1"),
-        renderRowWithBars("Break Clears", stats.bc     || {}, "#facc15")
-      ].join("");
-    }
+        const wrap = document.getElementById("analytics-" + g.id);
+        if (!wrap) return;
+        wrap.innerHTML = [
+          renderRowWithBars("Fouls", stats.foul || {}, "#ef4444"),
+          renderRowWithBars("Wins", stats.win || {}, "#22c55e"),
+          renderRowWithBars("Golden Breaks", stats.golden || {}, "#6366f1"),
+          renderRowWithBars("Break Clears", stats.bc || {}, "#facc15"),
+          renderRowWithBars("Dry Clears", stats.dry || {}, "#38bdf8"),
+        ].join("");
+      }
 
-    function gameCardHTML(g, isPast) {
-      const statusText = isPast ? "Final" : "Live";
-      const code = g.joinCode ?? "----";
-      const hash = "#" + g.id.slice(-6);
-      return `
+      function gameCardHTML(g, isPast) {
+        const statusText = isPast ? "Final" : "Live";
+        const code = g.joinCode ?? "----";
+        const hash = "#" + g.id.slice(-6);
+        return `
         <div class="glass-card" data-card="${g.id}" id="card-${g.id}">
           <div class="flex items-center justify-between mb-3">
             <div class="text-blue-300 font-bold text-lg">${g.title || "Guard Scoreboard"} (${statusText})</div>
@@ -276,8 +308,7 @@
           <!-- Per-game analytics -->
           <div id="analytics-${g.id}" class="mt-4"></div>
         </div>`;
-    }
-  
-</script>
-</body>
+      }
+    </script>
+  </body>
 </html>
