@@ -379,11 +379,19 @@
       actionStats.golden[player]++;
     } else if (action === "dry") {
       const pts = BC();
+
+      // winner is the player who clicked DC
       scores[player] += pts;
+
+      // "previous player" is the player before them in the order
       const prev = order[(idx - 1 + order.length) % order.length];
       scores[prev] -= pts;
+
       msg = `${playerName} dry cleared against ${getPlayerName(prev)}.`;
       actionStats.dry[player]++;
+
+      // winner becomes first, subtracted player becomes second
+      updateOrderAfterWin(player);
     }
 
     logState(msg);
