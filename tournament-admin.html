@@ -1,136 +1,172 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Tournament Admin Portal</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    body {
-      background: radial-gradient(circle at top left, #0f172a, #111827, #000);
-      color: #e5e7eb;
-      min-height: 100vh;
-      font-family: 'Bebas Neue', sans-serif;
-      overflow-x: auto;
-      position: relative;
-    }
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Tournament Admin Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      body {
+        background: radial-gradient(circle at top left, #0f172a, #111827, #000);
+        color: #e5e7eb;
+        min-height: 100vh;
+        font-family: "Bebas Neue", sans-serif;
+        overflow-x: auto;
+        position: relative;
+      }
 
-    @font-face {
-      font-family: 'Bebas Neue';
-      src: url('fonts/BebasNeue-Regular.otf') format('opentype');
-      font-weight: normal;
-      font-style: normal;
-    }
+      @font-face {
+        font-family: "Bebas Neue";
+        src: url("fonts/BebasNeue-Regular.otf") format("opentype");
+        font-weight: normal;
+        font-style: normal;
+      }
 
-    /* GLASS THEME */
-    .glass-card {
-      background: rgba(30,41,59,0.55);
-      border: 1px solid rgba(147,197,253,0.35);
-      backdrop-filter: blur(10px);
-      border-radius: 0.75rem;
-      box-shadow: 0 0 12px rgba(59,130,246,0.15);
-      padding: 1rem;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-    .glass-card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 0 20px rgba(59,130,246,0.25);
-    }
+      /* GLASS THEME */
+      .glass-card {
+        background: rgba(30, 41, 59, 0.55);
+        border: 1px solid rgba(147, 197, 253, 0.35);
+        backdrop-filter: blur(10px);
+        border-radius: 0.75rem;
+        box-shadow: 0 0 12px rgba(59, 130, 246, 0.15);
+        padding: 1rem;
+        transition:
+          transform 0.2s ease,
+          box-shadow 0.2s ease;
+      }
+      .glass-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 0 20px rgba(59, 130, 246, 0.25);
+      }
 
-    .glass-input {
-      background: rgba(255,255,255,0.08);
-      border: 1px solid rgba(255,255,255,0.25);
-      color: #fff;
-      backdrop-filter: blur(6px);
-      border-radius: 0.5rem;
-      padding: 0.5rem;
-    }
-    .glass-input::placeholder { color: #9ca3af; }
+      .glass-input {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        color: #fff;
+        backdrop-filter: blur(6px);
+        border-radius: 0.5rem;
+        padding: 0.5rem;
+      }
+      .glass-input::placeholder {
+        color: #9ca3af;
+      }
 
-    .glass-btn {
-      background: rgba(255,255,255,0.08);
-      border: 1px solid rgba(255,255,255,0.25);
-      color: #fff;
-      border-radius: 0.5rem;
-      padding: 0.5rem 1rem;
-      transition: background 0.2s ease;
-    }
-    .glass-btn:hover { background: rgba(255,255,255,0.2); }
+      .glass-btn {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        color: #fff;
+        border-radius: 0.5rem;
+        padding: 0.5rem 1rem;
+        transition: background 0.2s ease;
+      }
+      .glass-btn:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
 
-    /* BRACKET + CARDS */
-    #bracketWrap { position: relative; }
-    #bracket { position: relative; min-height: 600px; }
-    #bracketLines { position: absolute; inset: 0; pointer-events: none; z-index: 5; }
+      /* BRACKET + CARDS */
+      #bracketWrap {
+        position: relative;
+      }
+      #bracket {
+        position: relative;
+        min-height: 600px;
+      }
+      #bracketLines {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        z-index: 5;
+      }
 
-    .bracket-card {
-      background: rgba(30, 41, 59, 0.55);
-      border: 1px solid rgba(147,197,253,0.4);
-      border-radius: 0.75rem;
-      padding: 0.75rem 1rem;
-      width: 220px;
-      height: 100px;
-      box-shadow: 0 0 14px rgba(59,130,246,0.12);
-      backdrop-filter: blur(12px);
-      position: absolute;
-      font-size: 0.9rem;
-    }
+      .bracket-card {
+        background: rgba(30, 41, 59, 0.55);
+        border: 1px solid rgba(147, 197, 253, 0.4);
+        border-radius: 0.75rem;
+        padding: 0.75rem 1rem;
+        width: 220px;
+        height: 100px;
+        box-shadow: 0 0 14px rgba(59, 130, 246, 0.12);
+        backdrop-filter: blur(12px);
+        position: absolute;
+        font-size: 0.9rem;
+      }
 
-    .card-header {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 0.25rem;
-      font-size: 0.7rem;
-      font-weight: 700;
-      color: #cbd5e1;
-    }
+      .card-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.25rem;
+        font-size: 0.7rem;
+        font-weight: 700;
+        color: #cbd5e1;
+      }
 
-    .stage-tag { color: #94a3b8; }
-    .winner { font-weight: 700; color: #22c55e; }
-    .loser  { color: #6b7280; }
+      .stage-tag {
+        color: #94a3b8;
+      }
+      .winner {
+        font-weight: 700;
+        color: #22c55e;
+      }
+      .loser {
+        color: #6b7280;
+      }
 
-    .flow-path-pending { stroke: #6b7280; stroke-width: 2.5; }
-    .flow-path-live {
-      stroke: url(#blueWhiteGradient);
-      stroke-width: 3;
-      filter: drop-shadow(0 0 3px #3b82f6) drop-shadow(0 0 6px #ffffff);
-      animation: pulseBlue 3s ease-in-out infinite;
-    }
-    .flow-path-ended {
-      stroke: url(#yellowGradient);
-      stroke-width: 3;
-      filter: drop-shadow(0 0 3px #fde047) drop-shadow(0 0 6px #facc15);
-      animation: pulseYellow 3s ease-in-out infinite;
-    }
+      .flow-path-pending {
+        stroke: #6b7280;
+        stroke-width: 2.5;
+      }
+      .flow-path-live {
+        stroke: url(#blueWhiteGradient);
+        stroke-width: 3;
+        filter: drop-shadow(0 0 3px #3b82f6) drop-shadow(0 0 6px #ffffff);
+        animation: pulseBlue 3s ease-in-out infinite;
+      }
+      .flow-path-ended {
+        stroke: url(#yellowGradient);
+        stroke-width: 3;
+        filter: drop-shadow(0 0 3px #fde047) drop-shadow(0 0 6px #facc15);
+        animation: pulseYellow 3s ease-in-out infinite;
+      }
 
-    @keyframes pulseBlue {
-      0%,100% { filter: drop-shadow(0 0 3px #3b82f6) drop-shadow(0 0 6px #ffffff); }
-      50% { filter: drop-shadow(0 0 5px #60a5fa) drop-shadow(0 0 10px #e0f2fe); }
-    }
-    @keyframes pulseYellow {
-      0%,100% { filter: drop-shadow(0 0 3px #fde047) drop-shadow(0 0 6px #facc15); }
-      50% { filter: drop-shadow(0 0 6px #fde047) drop-shadow(0 0 12px #facc15); }
-    }
+      @keyframes pulseBlue {
+        0%,
+        100% {
+          filter: drop-shadow(0 0 3px #3b82f6) drop-shadow(0 0 6px #ffffff);
+        }
+        50% {
+          filter: drop-shadow(0 0 5px #60a5fa) drop-shadow(0 0 10px #e0f2fe);
+        }
+      }
+      @keyframes pulseYellow {
+        0%,
+        100% {
+          filter: drop-shadow(0 0 3px #fde047) drop-shadow(0 0 6px #facc15);
+        }
+        50% {
+          filter: drop-shadow(0 0 6px #fde047) drop-shadow(0 0 12px #facc15);
+        }
+      }
 
-    .race-input {
-      margin-top: 0.25rem;
-      background: rgba(255,255,255,0.08);
-      border: 1px solid rgba(255,255,255,0.25);
-      color: #fff;
-      border-radius: 0.5rem;
-      width: 70px;
-      text-align: center;
-      font-size: 0.8rem;
-      padding: 0.2rem 0.4rem;
-    }
+      .race-input {
+        margin-top: 0.25rem;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        color: #fff;
+        border-radius: 0.5rem;
+        width: 70px;
+        text-align: center;
+        font-size: 0.8rem;
+        padding: 0.2rem 0.4rem;
+      }
 
-    #bracketWrap {
-      position: relative;
-      overflow-y: auto;
-      max-height: 80vh;
-    }
+      #bracketWrap {
+        position: relative;
+        overflow-y: auto;
+        max-height: 80vh;
+      }
 
-    /* NOTICE BOARD CSS */
-    .notice-board {
+      /* NOTICE BOARD CSS */
+      .notice-board {
         position: fixed;
         top: 5rem;
         right: 1rem;
@@ -138,172 +174,262 @@
         max-height: 70vh;
         display: flex;
         flex-direction: column;
-        background: rgba(30,41,59,0.65);
-        border: 1px solid rgba(147,197,253,0.4);
+        background: rgba(30, 41, 59, 0.65);
+        border: 1px solid rgba(147, 197, 253, 0.4);
         backdrop-filter: blur(12px);
         border-radius: 0.75rem;
-        box-shadow: 0 0 20px rgba(59,130,246,0.15);
+        box-shadow: 0 0 20px rgba(59, 130, 246, 0.15);
         overflow: hidden;
         z-index: 50;
         font-size: 0.85rem;
-    }
-    .notice-header {
+      }
+      .notice-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
         padding: 0.5rem 0.75rem;
         font-weight: bold;
-        background: rgba(59,130,246,0.2);
+        background: rgba(59, 130, 246, 0.2);
         cursor: pointer;
-    }
-    .notice-content {
+      }
+      .notice-content {
         flex: 1;
         overflow-y: auto;
         padding: 0.5rem 0.75rem;
-    }
-    .notice-item {
+      }
+      .notice-item {
         margin-bottom: 0.75rem;
         padding-bottom: 0.5rem;
-        border-bottom: 1px solid rgba(148,163,184,0.2);
-    }
-    .notice-time {
+        border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+      }
+      .notice-time {
         font-size: 0.7rem;
         color: #9ca3af;
-    }
-
-  </style>
-</head>
-<body class="p-6">
-
-  <h1 class="text-3xl font-extrabold mb-6 text-blue-300">Tournament Admin Portal</h1>
-  
-  <!-- CONTROLS -->
-  <div class="mb-6 space-y-4 glass-card">
-    <div>
-      <label class="block mb-2 font-semibold">Tournament Name</label>
-      <input id="tournamentName" type="text" class="glass-input w-full" placeholder="Enter tournament name" />
-    </div>
-    <div>
-      <label class="block mb-2 font-semibold">Tournament Date</label>
-      <input id="tournamentDate" type="date" class="glass-input w-full" />
-    </div>
-    <div>
-      <label class="block mb-2 font-semibold">Number of Players</label>
-      <select id="playerCount" class="glass-input">
-        <option value="8">8</option><option value="16">16</option><option value="32">32</option>
-      </select>
-    </div>
-    <div>
-      <label class="block mb-2 font-semibold">Format</label>
-      <select id="format" class="glass-input"><option value="single">Single Elimination</option></select>
-    </div>
-    <div>
-      <label class="block mb-2 font-semibold">Player Names (one per line)</label>
-      <textarea id="playerNames" rows="6" class="glass-input w-full" placeholder="One name per line"></textarea>
-    </div>
-    <div class="flex flex-wrap items-center gap-3 pt-2">
-      <button id="generate" class="glass-btn bg-blue-600/70 border-blue-400">Generate Bracket</button>
-      <button id="endTournament" class="hidden glass-btn bg-red-600/80 border-red-400">End Tournament</button>
-      <button id="deleteTournament" class="hidden glass-btn bg-red-800/80 border-red-500">Delete Tournament</button>
-      <button id="shareLiveLink" class="hidden glass-btn bg-gray-700/80 border-gray-500">Share Live Link</button>
-      <span id="shareToast" class="hidden text-emerald-400 text-sm font-semibold">Link copied!</span>
-      <button id="openOverlayPopup" class="glass-btn bg-indigo-700/80 border-indigo-400">Generate Score Overlay</button>
-
-      <!-- ZOOM SLIDER -->
-      <div id="zoomControls" class="hidden mt-4 flex items-center gap-3">
-        <label for="zoomRange" class="text-sm font-semibold text-gray-300">Zoom:</label>
-        <input id="zoomRange" type="range" min="0.5" max="1.5" step="0.05" value="1" class="w-48">
-        <span id="zoomValue" class="text-gray-300 text-sm">100%</span>
-      </div>        
-    </div>
-  </div>
-
-  <!-- BRACKET -->
-  <div id="bracketWrap" class="glass-card relative">
-    <svg id="bracketLines">
-      <defs>
-        <linearGradient id="blueWhiteGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stop-color="#3b82f6"/>
-          <stop offset="100%" stop-color="#ffffff"/>
-        </linearGradient>
-        <linearGradient id="yellowGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stop-color="#facc15"/>
-          <stop offset="100%" stop-color="#fde047"/>
-        </linearGradient>
-      </defs>
-    </svg>
-    <div id="bracket"></div>
-  </div>
-
-<!-- NOTICE BOARD -->
-<div id="noticeBoard" class="notice-board">
-    <div id="noticeHeader" class="notice-header">
-      <span>Notice Board</span>
-      <span id="toggleNotice">−</span>
-    </div>
-    <div id="noticeContent" class="notice-content"></div>
-    <div class="p-2 border-t border-gray-600 flex">
-      <input id="noticeInput" type="text" class="flex-1 glass-input text-sm" placeholder="Type a notice...">
-      <button id="sendNotice" class="glass-btn ml-2">Send</button>
-    </div>
-</div>
-
-<!-- OVERLAY POPUP -->
-<div id="overlayPopup" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50">
-  <div class="glass-card w-80 text-center">
-    <h2 class="text-xl font-bold text-blue-300 mb-3">Enter Scoreboard ID</h2>
-    <input id="overlayIdInput" type="text" class="glass-input w-full mb-3 text-center" placeholder="Enter 4-digit ID" maxlength="4">
-    <div class="flex justify-center gap-3">
-      <button id="cancelOverlay" class="glass-btn bg-gray-600/70">Cancel</button>
-      <button id="confirmOverlay" class="glass-btn bg-blue-600/70">Submit</button>
-    </div>
-  </div>
-</div>
-
-  <!-- TOURNAMENT CORE LOGIC -->
-  <script type="module" src="tournament.js"></script>
-
-  <!-- DELETE + SHARE -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, doc, deleteDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyC_jSYoQLlsYvyMkE4fZ4bHFz2fkE70shk",
-      authDomain: "guard-scoreboard.firebaseapp.com",
-      projectId: "guard-scoreboard",
-      storageBucket: "guard-scoreboard.appspot.com",
-      messagingSenderId: "491028228431",
-      appId: "1:491028228431:web:4c92700d264f5b1aae3d3a",
-      measurementId: "G-5Z28C6N29L"
-    };
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-
-    const deleteBtn = document.getElementById("deleteTournament");
-    const shareBtn   = document.getElementById("shareLiveLink");
-    const shareToast = document.getElementById("shareToast");
-
-    async function deleteTournament(tournamentId) {
-      if (!confirm("Are you sure? This will delete the tournament and all its matches permanently.")) return;
-      try {
-        const matchSnap = await getDocs(query(collection(db, "tournament-match"), where("tournamentId", "==", tournamentId)));
-        for (const m of matchSnap.docs) await deleteDoc(m.ref);
-
-        const noticeSnap = await getDocs(collection(db, "tournaments", tournamentId, "notices"));
-        for (const n of noticeSnap.docs) await deleteDoc(n.ref);
-
-        await deleteDoc(doc(db, "tournaments", tournamentId));
-        localStorage.removeItem("lastTournamentId");
-        alert("Tournament deleted successfully.");
-        location.reload();
-      } catch (err) {
-        console.error("Failed to delete tournament:", err);
-        alert("Error deleting tournament: " + err.message);
       }
-    }
+    </style>
+  </head>
+  <body class="p-6">
+    <h1 class="text-3xl font-extrabold mb-6 text-blue-300">
+      Tournament Admin Portal
+    </h1>
 
-    function enableButtons(tournamentId) {
+    <!-- CONTROLS -->
+    <div class="mb-6 space-y-4 glass-card">
+      <div>
+        <label class="block mb-2 font-semibold">Tournament Name</label>
+        <input
+          id="tournamentName"
+          type="text"
+          class="glass-input w-full"
+          placeholder="Enter tournament name"
+        />
+      </div>
+      <div>
+        <label class="block mb-2 font-semibold">Tournament Date</label>
+        <input id="tournamentDate" type="date" class="glass-input w-full" />
+      </div>
+      <div>
+        <label class="block mb-2 font-semibold">Number of Players</label>
+        <select id="playerCount" class="glass-input">
+          <option value="8">8</option>
+          <option value="16">16</option>
+          <option value="32">32</option>
+        </select>
+      </div>
+      <div>
+        <label class="block mb-2 font-semibold">Format</label>
+        <select id="format" class="glass-input">
+          <option value="single">Single Elimination</option>
+        </select>
+      </div>
+      <div>
+        <label class="block mb-2 font-semibold"
+          >Player Names (one per line)</label
+        >
+        <textarea
+          id="playerNames"
+          rows="6"
+          class="glass-input w-full"
+          placeholder="One name per line"
+        ></textarea>
+      </div>
+      <div class="flex flex-wrap items-center gap-3 pt-2">
+        <button id="generate" class="glass-btn bg-blue-600/70 border-blue-400">
+          Generate Bracket
+        </button>
+        <button
+          id="endTournament"
+          class="hidden glass-btn bg-red-600/80 border-red-400"
+        >
+          End Tournament
+        </button>
+        <button
+          id="deleteTournament"
+          class="hidden glass-btn bg-red-800/80 border-red-500"
+        >
+          Delete Tournament
+        </button>
+        <button
+          id="shareLiveLink"
+          class="hidden glass-btn bg-gray-700/80 border-gray-500"
+        >
+          Share Live Link
+        </button>
+        <span
+          id="shareToast"
+          class="hidden text-emerald-400 text-sm font-semibold"
+          >Link copied!</span
+        >
+        <button
+          id="openOverlayPopup"
+          class="glass-btn bg-indigo-700/80 border-indigo-400"
+        >
+          Generate Score Overlay
+        </button>
+
+        <!-- ZOOM SLIDER -->
+        <div id="zoomControls" class="hidden mt-4 flex items-center gap-3">
+          <label for="zoomRange" class="text-sm font-semibold text-gray-300"
+            >Zoom:</label
+          >
+          <input
+            id="zoomRange"
+            type="range"
+            min="0.5"
+            max="1.5"
+            step="0.05"
+            value="1"
+            class="w-48"
+          />
+          <span id="zoomValue" class="text-gray-300 text-sm">100%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- BRACKET -->
+    <div id="bracketWrap" class="glass-card relative">
+      <svg id="bracketLines">
+        <defs>
+          <linearGradient
+            id="blueWhiteGradient"
+            x1="0%"
+            y1="0%"
+            x2="100%"
+            y2="0%"
+          >
+            <stop offset="0%" stop-color="#3b82f6" />
+            <stop offset="100%" stop-color="#ffffff" />
+          </linearGradient>
+          <linearGradient id="yellowGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#facc15" />
+            <stop offset="100%" stop-color="#fde047" />
+          </linearGradient>
+        </defs>
+      </svg>
+      <div id="bracket"></div>
+    </div>
+
+    <!-- NOTICE BOARD -->
+    <div id="noticeBoard" class="notice-board">
+      <div id="noticeHeader" class="notice-header">
+        <span>Notice Board</span>
+        <span id="toggleNotice">−</span>
+      </div>
+      <div id="noticeContent" class="notice-content"></div>
+      <div class="p-2 border-t border-gray-600 flex">
+        <input
+          id="noticeInput"
+          type="text"
+          class="flex-1 glass-input text-sm"
+          placeholder="Type a notice..."
+        />
+        <button id="sendNotice" class="glass-btn ml-2">Send</button>
+      </div>
+    </div>
+
+    <!-- OVERLAY POPUP -->
+    <div
+      id="overlayPopup"
+      class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50"
+    >
+      <div class="glass-card w-80 text-center">
+        <h2 class="text-xl font-bold text-blue-300 mb-3">
+          Enter Scoreboard ID
+        </h2>
+        <input
+          id="overlayIdInput"
+          type="text"
+          class="glass-input w-full mb-3 text-center"
+          placeholder="Enter 4-digit ID"
+          maxlength="4"
+        />
+        <div class="flex justify-center gap-3">
+          <button id="cancelOverlay" class="glass-btn bg-gray-600/70">
+            Cancel
+          </button>
+          <button id="confirmOverlay" class="glass-btn bg-blue-600/70">
+            Submit
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TOURNAMENT CORE LOGIC -->
+    <script type="module" src="tournament.js"></script>
+
+    <!-- DELETE + SHARE -->
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+      import {
+        getFirestore,
+        doc,
+        deleteDoc,
+        collection,
+        query,
+        where,
+        getDocs,
+      } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+      import { firebaseConfig } from "./firebase-config.js";
+
+      const app = initializeApp(firebaseConfig);
+      const db = getFirestore(app);
+
+      const deleteBtn = document.getElementById("deleteTournament");
+      const shareBtn = document.getElementById("shareLiveLink");
+      const shareToast = document.getElementById("shareToast");
+
+      async function deleteTournament(tournamentId) {
+        if (
+          !confirm(
+            "Are you sure? This will delete the tournament and all its matches permanently.",
+          )
+        )
+          return;
+        try {
+          const matchSnap = await getDocs(
+            query(
+              collection(db, "tournament-match"),
+              where("tournamentId", "==", tournamentId),
+            ),
+          );
+          for (const m of matchSnap.docs) await deleteDoc(m.ref);
+
+          const noticeSnap = await getDocs(
+            collection(db, "tournaments", tournamentId, "notices"),
+          );
+          for (const n of noticeSnap.docs) await deleteDoc(n.ref);
+
+          await deleteDoc(doc(db, "tournaments", tournamentId));
+          localStorage.removeItem("lastTournamentId");
+          alert("Tournament deleted successfully.");
+          location.reload();
+        } catch (err) {
+          console.error("Failed to delete tournament:", err);
+          alert("Error deleting tournament: " + err.message);
+        }
+      }
+
+      function enableButtons(tournamentId) {
         if (!tournamentId) return;
         deleteBtn.classList.remove("hidden");
         deleteBtn.onclick = () => deleteTournament(tournamentId);
@@ -311,45 +437,47 @@
         const liveUrl = `${window.location.origin}/guard-scoreboard/tournament-live.html?id=${tournamentId}`;
         shareBtn.classList.remove("hidden");
         shareBtn.onclick = async () => {
-            try {
+          try {
             await navigator.clipboard.writeText(liveUrl);
             shareToast.classList.remove("hidden");
             setTimeout(() => shareToast.classList.add("hidden"), 1600);
-            } catch (err) {
+          } catch (err) {
             alert("Failed to copy link: " + (err?.message || err));
-            }
+          }
         };
-    }
+      }
 
-    const existing = localStorage.getItem("lastTournamentId");
-    if (existing) enableButtons(existing);
+      const existing = localStorage.getItem("lastTournamentId");
+      if (existing) enableButtons(existing);
 
-    const origSetItem = localStorage.setItem;
-    localStorage.setItem = function(k,v){
-      origSetItem.apply(this, arguments);
-      if(k==="lastTournamentId" && typeof v==="string" && v.length) enableButtons(v);
-    };
-
-    // --- OVERLAY POPUP LOGIC ---
-    const openOverlayPopup = document.getElementById("openOverlayPopup");
-    const overlayPopup = document.getElementById("overlayPopup");
-    const cancelOverlay = document.getElementById("cancelOverlay");
-    const confirmOverlay = document.getElementById("confirmOverlay");
-    const overlayIdInput = document.getElementById("overlayIdInput");
-
-    if (openOverlayPopup && overlayPopup && cancelOverlay && confirmOverlay) {
-      openOverlayPopup.onclick = () => overlayPopup.classList.remove("hidden");
-      cancelOverlay.onclick = () => overlayPopup.classList.add("hidden");
-      confirmOverlay.onclick = () => {
-        const id = overlayIdInput.value.trim();
-        if (!/^\d{4}$/.test(id)) {
-          alert("Please enter a valid 4-digit scoreboard ID.");
-          return;
-        }
-        overlayPopup.classList.add("hidden");
-        window.open(`tournament-score-overlay.html?id=${id}`, "_blank");
+      const origSetItem = localStorage.setItem;
+      localStorage.setItem = function (k, v) {
+        origSetItem.apply(this, arguments);
+        if (k === "lastTournamentId" && typeof v === "string" && v.length)
+          enableButtons(v);
       };
-    }
-  </script>
-</body>
+
+      // --- OVERLAY POPUP LOGIC ---
+      const openOverlayPopup = document.getElementById("openOverlayPopup");
+      const overlayPopup = document.getElementById("overlayPopup");
+      const cancelOverlay = document.getElementById("cancelOverlay");
+      const confirmOverlay = document.getElementById("confirmOverlay");
+      const overlayIdInput = document.getElementById("overlayIdInput");
+
+      if (openOverlayPopup && overlayPopup && cancelOverlay && confirmOverlay) {
+        openOverlayPopup.onclick = () =>
+          overlayPopup.classList.remove("hidden");
+        cancelOverlay.onclick = () => overlayPopup.classList.add("hidden");
+        confirmOverlay.onclick = () => {
+          const id = overlayIdInput.value.trim();
+          if (!/^\d{4}$/.test(id)) {
+            alert("Please enter a valid 4-digit scoreboard ID.");
+            return;
+          }
+          overlayPopup.classList.add("hidden");
+          window.open(`tournament-score-overlay.html?id=${id}`, "_blank");
+        };
+      }
+    </script>
+  </body>
 </html>

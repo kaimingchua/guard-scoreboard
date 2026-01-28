@@ -1,158 +1,174 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Normal Live Games</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    @font-face {
-      font-family: 'Bebas Neue';
-      src: url('fonts/BebasNeue-Regular.otf') format('opentype');
-      font-weight: normal;
-      font-style: normal;
-    }
-    body {
-      background: radial-gradient(circle at top left, #0f172a, #111827, #000);
-      color: #e5e7eb;
-      font-family: 'Bebas Neue', sans-serif;
-    }
-
-    /* Glass effect */
-    .glass-card {
-      background: rgba(30,41,59,0.55);
-      border: 1px solid rgba(147,197,253,0.4);
-      backdrop-filter: blur(12px);
-      border-radius: 0.75rem;
-      box-shadow: 0 0 14px rgba(59,130,246,0.12);
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-    .glass-card:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 0 20px rgba(59,130,246,0.25);
-    }
-
-    /* Score glow */
-    @keyframes scoreGlow {
-      0% { color: #fff; text-shadow: none; }
-      50% {
-        color: #22c55e;
-        text-shadow:
-          0 0 8px rgba(34,197,94,0.8),
-          0 0 16px rgba(34,197,94,0.7),
-          0 0 24px rgba(34,197,94,0.6);
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Normal Live Games</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      @font-face {
+        font-family: "Bebas Neue";
+        src: url("fonts/BebasNeue-Regular.otf") format("opentype");
+        font-weight: normal;
+        font-style: normal;
       }
-      100% { color: #fff; text-shadow: none; }
-    }
-    .score-glow { animation: scoreGlow 1.2s ease-in-out; }
-  </style>
-</head>
-<body>
-  <div class="max-w-5xl mx-auto p-6">
-    <h1 class="text-3xl font-extrabold mb-6 text-blue-300">Normal Live Games</h1>
+      body {
+        background: radial-gradient(circle at top left, #0f172a, #111827, #000);
+        color: #e5e7eb;
+        font-family: "Bebas Neue", sans-serif;
+      }
 
-    <!-- Overall Team Score -->
-    <div id="overallScore"
-      class="mb-8 text-4xl font-bold text-center text-white">
-      Overall Team Score: -
+      /* Glass effect */
+      .glass-card {
+        background: rgba(30, 41, 59, 0.55);
+        border: 1px solid rgba(147, 197, 253, 0.4);
+        backdrop-filter: blur(12px);
+        border-radius: 0.75rem;
+        box-shadow: 0 0 14px rgba(59, 130, 246, 0.12);
+        transition:
+          transform 0.2s ease,
+          box-shadow 0.2s ease;
+      }
+      .glass-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 0 20px rgba(59, 130, 246, 0.25);
+      }
+
+      /* Score glow */
+      @keyframes scoreGlow {
+        0% {
+          color: #fff;
+          text-shadow: none;
+        }
+        50% {
+          color: #22c55e;
+          text-shadow:
+            0 0 8px rgba(34, 197, 94, 0.8),
+            0 0 16px rgba(34, 197, 94, 0.7),
+            0 0 24px rgba(34, 197, 94, 0.6);
+        }
+        100% {
+          color: #fff;
+          text-shadow: none;
+        }
+      }
+      .score-glow {
+        animation: scoreGlow 1.2s ease-in-out;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="max-w-5xl mx-auto p-6">
+      <h1 class="text-3xl font-extrabold mb-6 text-blue-300">
+        Normal Live Games
+      </h1>
+
+      <!-- Overall Team Score -->
+      <div
+        id="overallScore"
+        class="mb-8 text-4xl font-bold text-center text-white"
+      >
+        Overall Team Score: -
+      </div>
+
+      <!-- Ongoing Games -->
+      <h2 class="text-xl font-bold mb-3 text-emerald-400">Ongoing Matches</h2>
+      <div id="games" class="grid gap-6 md:grid-cols-2"></div>
+      <p id="empty" class="text-sm text-gray-400 hidden">
+        No live games yet. Ask someone to turn on “Live score sharing”.
+      </p>
+
+      <!-- Past Matches -->
+      <h2 class="text-xl font-bold mt-10 mb-3 text-gray-300">Past Matches</h2>
+      <div id="pastGames" class="grid gap-6 md:grid-cols-2"></div>
+      <p id="pastEmpty" class="text-sm text-gray-400 hidden">
+        No past matches yet.
+      </p>
     </div>
 
-    <!-- Ongoing Games -->
-    <h2 class="text-xl font-bold mb-3 text-emerald-400">Ongoing Matches</h2>
-    <div id="games" class="grid gap-6 md:grid-cols-2"></div>
-    <p id="empty" class="text-sm text-gray-400 hidden">
-      No live games yet. Ask someone to turn on “Live score sharing”.
-    </p>
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+      import {
+        getFirestore,
+        collection,
+        onSnapshot,
+        query,
+        orderBy,
+      } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+      import { firebaseConfig } from "./firebase-config.js";
 
-    <!-- Past Matches -->
-    <h2 class="text-xl font-bold mt-10 mb-3 text-gray-300">Past Matches</h2>
-    <div id="pastGames" class="grid gap-6 md:grid-cols-2"></div>
-    <p id="pastEmpty" class="text-sm text-gray-400 hidden">No past matches yet.</p>
-  </div>
+      const app = initializeApp(firebaseConfig);
+      const db = getFirestore(app);
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import {
-      getFirestore, collection, onSnapshot, query, orderBy
-    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+      const gamesWrap = document.getElementById("games");
+      const pastWrap = document.getElementById("pastGames");
+      const emptyMsg = document.getElementById("empty");
+      const pastEmpty = document.getElementById("pastEmpty");
+      const overallEl = document.getElementById("overallScore");
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyC_jSYoQLlsYvyMkE4fZ4bHFz2fkE70shk",
-      authDomain: "guard-scoreboard.firebaseapp.com",
-      projectId: "guard-scoreboard",
-      storageBucket: "guard-scoreboard.appspot.com",
-      messagingSenderId: "491028228431",
-      appId: "1:491028228431:web:4c92700d264f5b1aae3d3a",
-      measurementId: "G-5Z28C6N29L"
-    };
-    const app = initializeApp(firebaseConfig);
-    const db  = getFirestore(app);
+      function animateScore(id) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.classList.remove("score-glow");
+        void el.offsetWidth;
+        el.classList.add("score-glow");
+      }
 
-    const gamesWrap = document.getElementById("games");
-    const pastWrap  = document.getElementById("pastGames");
-    const emptyMsg  = document.getElementById("empty");
-    const pastEmpty = document.getElementById("pastEmpty");
-    const overallEl = document.getElementById("overallScore");
-
-    function animateScore(id) {
-      const el = document.getElementById(id);
-      if (!el) return;
-      el.classList.remove("score-glow");
-      void el.offsetWidth;
-      el.classList.add("score-glow");
-    }
-
-    const q = query(collection(db, "normal-match"), orderBy("updatedAt", "desc"));
-    onSnapshot(q, (snap) => {
-      const liveGames = [];
-      const pastGames = [];
-      snap.forEach(d => {
-        const data = d.data();
-        if (data?.status === "live") liveGames.push({ id: d.id, ...data });
-        else if (data?.status === "ended") pastGames.push({ id: d.id, ...data });
+      const q = query(
+        collection(db, "normal-match"),
+        orderBy("updatedAt", "desc"),
+      );
+      onSnapshot(q, (snap) => {
+        const liveGames = [];
+        const pastGames = [];
+        snap.forEach((d) => {
+          const data = d.data();
+          if (data?.status === "live") liveGames.push({ id: d.id, ...data });
+          else if (data?.status === "ended")
+            pastGames.push({ id: d.id, ...data });
+        });
+        render(liveGames, pastGames);
       });
-      render(liveGames, pastGames);
-    });
 
-    function render(liveGames, pastGames) {
-      gamesWrap.innerHTML = "";
-      pastWrap.innerHTML = "";
+      function render(liveGames, pastGames) {
+        gamesWrap.innerHTML = "";
+        pastWrap.innerHTML = "";
 
-      emptyMsg.classList.toggle("hidden", liveGames.length > 0);
-      pastEmpty.classList.toggle("hidden", pastGames.length > 0);
+        emptyMsg.classList.toggle("hidden", liveGames.length > 0);
+        pastEmpty.classList.toggle("hidden", pastGames.length > 0);
 
-      for (const g of liveGames) {
-        gamesWrap.insertAdjacentHTML("beforeend", gameCardHTML(g, false));
-        updateScores(g, false);
-        updateAnalytics(g);
+        for (const g of liveGames) {
+          gamesWrap.insertAdjacentHTML("beforeend", gameCardHTML(g, false));
+          updateScores(g, false);
+          updateAnalytics(g);
+        }
+
+        for (const g of pastGames) {
+          pastWrap.insertAdjacentHTML("beforeend", gameCardHTML(g, true));
+          updateScores(g, true);
+          updateAnalytics(g);
+        }
+
+        updateOverallScore(pastGames);
       }
 
-      for (const g of pastGames) {
-        pastWrap.insertAdjacentHTML("beforeend", gameCardHTML(g, true));
-        updateScores(g, true);
-        updateAnalytics(g);
-      }
+      function updateScores(g, isPast) {
+        const container = document.getElementById(`scores-${g.id}`);
+        if (!container) return;
 
-      updateOverallScore(pastGames);
-    }
+        const s1 = g.scores?.[1] ?? 0;
+        const s2 = g.scores?.[2] ?? 0;
+        const p1 = g.players?.[1] || "P1";
+        const p2 = g.players?.[2] || "P2";
 
-    function updateScores(g, isPast) {
-      const container = document.getElementById(`scores-${g.id}`);
-      if (!container) return;
+        let p1Classes = "font-bold";
+        let p2Classes = "font-bold";
+        if (isPast) {
+          if (s1 > s2) p1Classes += " text-green-400";
+          else if (s2 > s1) p2Classes += " text-green-400";
+        }
 
-      const s1 = g.scores?.[1] ?? 0;
-      const s2 = g.scores?.[2] ?? 0;
-      const p1 = g.players?.[1] || "P1";
-      const p2 = g.players?.[2] || "P2";
-
-      let p1Classes = "font-bold";
-      let p2Classes = "font-bold";
-      if (isPast) {
-        if (s1 > s2) p1Classes += " text-green-400";
-        else if (s2 > s1) p2Classes += " text-green-400";
-      }
-
-      container.innerHTML = `
+        container.innerHTML = `
         <div class="flex justify-between gap-4">
           <div class="flex-1 text-center">
             <div class="${p1Classes} text-lg">${p1}</div>
@@ -165,70 +181,75 @@
         </div>
       `;
 
-      if (!isPast) {
-        animateScore(`score-${g.id}-1`);
-        animateScore(`score-${g.id}-2`);
-      }
-    }
-
-    function updateOverallScore(pastGames) {
-      if (!overallEl) return;
-
-      if (pastGames.length === 0) {
-        overallEl.textContent = "Overall Team Score: -";
-        return;
+        if (!isPast) {
+          animateScore(`score-${g.id}-1`);
+          animateScore(`score-${g.id}-2`);
+        }
       }
 
-      let teamWins = { 1: 0, 2: 0 };
-      let teamNames = { 1: "Team 1", 2: "Team 2" };
+      function updateOverallScore(pastGames) {
+        if (!overallEl) return;
 
-      for (const g of pastGames) {
-        const s1 = g.scores?.[1] ?? 0;
-        const s2 = g.scores?.[2] ?? 0;
-        teamNames = g.teams || teamNames;
-        if (s1 > s2) teamWins[1]++;
-        else if (s2 > s1) teamWins[2]++;
+        if (pastGames.length === 0) {
+          overallEl.textContent = "Overall Team Score: -";
+          return;
+        }
+
+        let teamWins = { 1: 0, 2: 0 };
+        let teamNames = { 1: "Team 1", 2: "Team 2" };
+
+        for (const g of pastGames) {
+          const s1 = g.scores?.[1] ?? 0;
+          const s2 = g.scores?.[2] ?? 0;
+          teamNames = g.teams || teamNames;
+          if (s1 > s2) teamWins[1]++;
+          else if (s2 > s1) teamWins[2]++;
+        }
+
+        overallEl.textContent = `${teamNames[1]}   ${teamWins[1]}  -  ${teamWins[2]}   ${teamNames[2]}`;
       }
 
-      overallEl.textContent =
-        `${teamNames[1]}   ${teamWins[1]}  -  ${teamWins[2]}   ${teamNames[2]}`;
-    }
+      function updateAnalytics(g) {
+        const players = g.players || {};
+        const pids = Object.keys(players)
+          .map(Number)
+          .sort((a, b) => a - b);
+        const stats = g.actionStats || {};
+        const foul = stats.foul || {};
 
-    function updateAnalytics(g) {
-      const players = g.players || {};
-      const pids = Object.keys(players).map(Number).sort((a,b)=>a-b);
-      const stats = g.actionStats || {};
-      const foul = (stats.foul || {});
+        const wrap = document.getElementById("foul-" + g.id);
+        if (!wrap) return;
 
-      const wrap = document.getElementById("foul-" + g.id);
-      if (!wrap) return;
+        let max = 0;
+        pids.forEach((pid) => {
+          max = Math.max(max, foul[pid] || 0);
+        });
+        if (max === 0) max = 1;
 
-      let max = 0;
-      pids.forEach(pid => { max = Math.max(max, foul[pid] || 0); });
-      if (max === 0) max = 1;
-
-      wrap.innerHTML = `
+        wrap.innerHTML = `
         <div class="mb-1 font-semibold text-xs text-gray-300">Fouls:</div>
         <div class="flex gap-2 items-end">
-          ${pids.map(pid => {
-            const v = foul[pid] || 0;
-            const pct = Math.round((v / max) * 100);
-            return `
+          ${pids
+            .map((pid) => {
+              const v = foul[pid] || 0;
+              const pct = Math.round((v / max) * 100);
+              return `
               <div class="flex-1 text-center">
                 <div class="bg-gray-700 h-3 rounded mb-1 relative overflow-hidden">
                   <div class="h-3 rounded" style="width:${pct}%; background-color:#facc15;"></div>
                 </div>
-                <div class="text-[11px] text-gray-200">${players[pid] || ("P"+pid)} (${v})</div>
+                <div class="text-[11px] text-gray-200">${players[pid] || "P" + pid} (${v})</div>
               </div>
             `;
-          }).join("")}
+            })
+            .join("")}
         </div>
       `;
-    }
+      }
 
-    function gameCardHTML(g, isPast) {
-      const statusText = isPast ? "Final" : "Live";
-      return `
+      function gameCardHTML(g, isPast) {
+        const statusText = isPast ? "Final" : "Live";
+        return `
         <div class="glass-card p-4">
           <div class="flex items-center justify-between mb-3">
             <div class="font-bold text-blue-300">${g.title || "Normal Scoreboard"} (${statusText})</div>
@@ -237,7 +258,7 @@
           <div class="text-lg font-extrabold tabular-nums" id="scores-${g.id}"></div>
           <div id="foul-${g.id}" class="mt-4"></div>
         </div>`;
-    }
-  </script>
-</body>
+      }
+    </script>
+  </body>
 </html>

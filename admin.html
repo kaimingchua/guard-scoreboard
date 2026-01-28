@@ -102,6 +102,11 @@
       background: rgba(0,0,0,0.6);
       backdrop-filter: blur(4px);
     }
+
+    .analytics-text {
+      font-size: 0.75rem;
+      color: #cbd5e1;
+    }    
   </style>
 </head>
 <body>
@@ -110,6 +115,7 @@
     <h1 class="text-3xl font-extrabold mb-6 text-blue-300">Admin Dashboard</h1>
     <div class="flex gap-4 mb-8">
       <button id="tab-guard" class="tab-btn glass-btn active">Guard Scoreboard</button>
+      <button id="tab-race" class="tab-btn glass-btn">Race Matches</button>
       <button id="tab-normal" class="tab-btn glass-btn">Normal Scoreboard</button>
       <button id="tab-tournament" class="tab-btn glass-btn">Tournament Matches</button>
     </div>
@@ -123,6 +129,17 @@
       <h2 class="text-lg font-bold mt-8 mb-2 text-white">Guard Past Matches</h2>
       <div id="guardPastGames" class="grid gap-4 md:grid-cols-2"></div>
       <p id="guardPastEmpty" class="text-sm text-gray-400 hidden">No past matches.</p>
+    </div>
+
+    <!-- Race -->
+    <div id="raceView" class="hidden">
+      <h2 class="text-lg font-bold mb-2 text-white">Race Ongoing Matches</h2>
+      <div id="raceGames" class="grid gap-4 md:grid-cols-2"></div>
+      <p id="raceEmpty" class="text-sm text-gray-400 hidden">No live games.</p>
+
+      <h2 class="text-lg font-bold mt-8 mb-2 text-white">Race Past Matches</h2>
+      <div id="racePastGames" class="grid gap-4 md:grid-cols-2"></div>
+      <p id="racePastEmpty" class="text-sm text-gray-400 hidden">No past matches.</p>
     </div>
 
     <!-- Normal -->
@@ -165,16 +182,8 @@
       getFirestore, collection, onSnapshot, query, orderBy,
       doc, updateDoc, deleteDoc
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { firebaseConfig } from "./firebase-config.js";    
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyC_jSYoQLlsYvyMkE4fZ4bHFz2fkE70shk",
-      authDomain: "guard-scoreboard.firebaseapp.com",
-      projectId: "guard-scoreboard",
-      storageBucket: "guard-scoreboard.appspot.com",
-      messagingSenderId: "491028228431",
-      appId: "1:491028228431:web:4c92700d264f5b1aae3d3a",
-      measurementId: "G-5Z28C6N29L"
-    };
     const app = initializeApp(firebaseConfig);
     const db  = getFirestore(app);
 
@@ -238,10 +247,22 @@
       allow();
     });
 
+    window.__debugAuth = () => {
+      const u = auth.currentUser;
+      console.log("projectId:", app.options.projectId);
+      console.log("signedIn:", !!u, "uid:", u?.uid, "email:", u?.email);
+      console.log("isAdminByList:", u ? ADMIN_UIDS.includes(u.uid) : false);
+    };    
+
     const guardGamesWrap = document.getElementById("guardGames");
     const guardPastWrap  = document.getElementById("guardPastGames");
     const guardEmpty     = document.getElementById("guardEmpty");
     const guardPastEmpty = document.getElementById("guardPastEmpty");
+
+    const raceGamesWrap = document.getElementById("raceGames");
+    const racePastWrap  = document.getElementById("racePastGames");
+    const raceEmpty     = document.getElementById("raceEmpty");
+    const racePastEmpty = document.getElementById("racePastEmpty");    
 
     const normalGamesWrap = document.getElementById("normalGames");
     const normalPastWrap  = document.getElementById("normalPastGames");
@@ -261,9 +282,19 @@
       deleteModal.classList.add("hidden");
     };
     document.getElementById("confirmDelete").onclick = async () => {
-      if (pendingDelete) await deleteDoc(pendingDelete);
-      pendingDelete = null;
-      deleteModal.classList.add("hidden");
+      if (!pendingDelete) return;
+
+      try {
+        console.log("Deleting doc:", pendingDelete.path);
+        await deleteDoc(pendingDelete);
+        console.log("Delete OK:", pendingDelete.path);
+      } catch (e) {
+        console.error("Delete failed:", e);
+        alert(`Delete failed: ${e?.message || e}`);
+      } finally {
+        pendingDelete = null;
+        deleteModal.classList.add("hidden");
+      }
     };
 
     function gameCardHTML(g, isPast, colName) {
@@ -272,32 +303,66 @@
       const players = g.players || {};
       const pids = Object.keys(players).map(Number).sort((a,b)=>a-b);
       const id = g.id;
+
       return `
-        <div class="glass-card p-4 relative" data-col="${colName}" data-id="${id}">
+        <div class="glass-card p-4 relative"
+            data-col="${colName}"
+            data-id="${id}">
+
           <div class="delete-btn" data-del="${colName}|${id}">−</div>
+
           <div class="flex items-center justify-between mb-2">
-            <div class="font-bold text-blue-300">${g.title || "Match"} (${statusText})</div>
+            <div class="font-bold text-blue-300">
+              ${g.title || "Match"} (${statusText})
+            </div>
+
             <div class="text-xs text-gray-400 text-right">
               <div>ID: ${g.scoreboardCode || g.joinCode || "----"}</div>
               <div class="text-[10px] text-gray-500">#${id.slice(-6)}</div>
             </div>
           </div>
+
+          <!-- Players + Scores -->
           <div class="flex justify-between gap-4">
             ${pids.map(pid => `
               <div class="flex-1 text-center">
-                <input class="glass-input font-bold w-full" data-field="players.${pid}" value="${players[pid] || "P"+pid}" />
-                <input class="glass-input text-xl w-full mt-1" data-field="scores.${pid}" value="${scores[pid] ?? 0}" />
+                <input
+                  class="glass-input font-bold w-full"
+                  data-kind="player"
+                  data-pid="${pid}"
+                  value="${players[pid] || "P" + pid}"
+                />
+
+                <input
+                  class="glass-input text-xl w-full mt-1"
+                  data-kind="score"
+                  data-pid="${pid}"
+                  inputmode="numeric"
+                  value="${scores[pid] ?? 0}"
+                />
               </div>
             `).join("")}
           </div>
-        </div>`;
-    }
 
-    function renderGames(snap, wrap, pastWrap, emptyMsg, pastEmpty, colName) {
+          <!-- 🔽 Analytics section (same layout as live.html, editable) -->
+          ${analyticsBlockHTML(g, players, pids)}
+
+        </div>
+      `;
+    }
+    
+    function isRaceMatch(data) {
+      const t = String(data?.title || "").trim().toLowerCase();
+      return t.startsWith("race");
+    }    
+
+    function renderGames(snap, wrap, pastWrap, emptyMsg, pastEmpty, colName, filterFn) {
       const liveGames = [];
       const pastGames = [];
       snap.forEach(d => {
         const data = d.data();
+        if (typeof filterFn === "function" && !filterFn(data)) return;
+
         const item = { id: d.id, ...data };
         if (data?.status === "live") liveGames.push(item);
         else if (data?.status === "ended") pastGames.push(item);
@@ -322,20 +387,93 @@
 
       [...wrap.querySelectorAll("input"), ...pastWrap.querySelectorAll("input")].forEach(inp => {
         inp.onchange = async () => {
-          const path = inp.dataset.field;
           const card = inp.closest("[data-col][data-id]");
           if (!card) return;
+
           const c = card.dataset.col;
           const id = card.dataset.id;
-          await updateDoc(doc(db, c, id), { [path]: inp.value });
-          inp.classList.add("score-glow");
-          setTimeout(() => inp.classList.remove("score-glow"), 1200);
+
+          const playersType = card.dataset.playersType || "map";
+          const scoresType  = card.dataset.scoresType || "map";
+
+          const playerInputs = [...card.querySelectorAll('input[data-kind="player"]')];
+          const scoreInputs  = [...card.querySelectorAll('input[data-kind="score"]')];
+          const statInputs   = [...card.querySelectorAll('input[data-kind="stat"]')];
+
+          // Collect PIDs present on the card
+          const pids = [...new Set([
+            ...playerInputs.map(x => Number(x.dataset.pid)),
+            ...scoreInputs.map(x => Number(x.dataset.pid)),
+            ...statInputs.map(x => Number(x.dataset.pid)),
+          ])].sort((a, b) => a - b);
+
+          let newPlayers;
+          if (playersType === "array") {
+            const maxPid = pids.length ? Math.max(...pids) : -1;
+            newPlayers = Array(maxPid + 1).fill("");
+            for (const pi of playerInputs) {
+              const pid = Number(pi.dataset.pid);
+              newPlayers[pid] = (pi.value || "").trim();
+            }
+          } else {
+            newPlayers = {};
+            for (const pi of playerInputs) {
+              const pid = Number(pi.dataset.pid);
+              newPlayers[pid] = (pi.value || "").trim();
+            }
+          }
+
+          let newScores;
+          if (scoresType === "array") {
+            const maxPid = pids.length ? Math.max(...pids) : -1;
+            newScores = Array(maxPid + 1).fill(0);
+            for (const si of scoreInputs) {
+              const pid = Number(si.dataset.pid);
+              const n = Number(si.value);
+              newScores[pid] = Number.isFinite(n) ? n : 0;
+            }
+          } else {
+            newScores = {};
+            for (const si of scoreInputs) {
+              const pid = Number(si.dataset.pid);
+              const n = Number(si.value);
+              newScores[pid] = Number.isFinite(n) ? n : 0;
+            }
+          }
+
+          const newActionStats = { foul: {}, win: {}, golden: {}, bc: {}, dry: {} };
+
+          for (const st of statInputs) {
+            const statKey = st.dataset.stat; // "foul" | "win" | "golden" | "bc"
+            const pid = Number(st.dataset.pid);
+            const n = Number(st.value);
+
+            if (!newActionStats[statKey]) newActionStats[statKey] = {};
+            newActionStats[statKey][pid] = Number.isFinite(n) ? n : 0;
+          }
+
+          try {
+            await updateDoc(doc(db, c, id), {
+              players: newPlayers,
+              scores: newScores,
+              actionStats: newActionStats,
+              updatedAt: Date.now(),
+            });
+
+            inp.classList.add("score-glow");
+            setTimeout(() => inp.classList.remove("score-glow"), 1200);
+          } catch (e) {
+            console.error("Update failed:", e);
+            alert(`Save failed: ${e?.message || e}`);
+          }
         };
       });
     }
 
     onSnapshot(query(collection(db, "guard"), orderBy("updatedAt","desc")),
-      snap => renderGames(snap, guardGamesWrap, guardPastWrap, guardEmpty, guardPastEmpty, "guard"));
+      snap => renderGames(snap,guardGamesWrap, guardPastWrap,guardEmpty, guardPastEmpty,"guard",(data) => !isRaceMatch(data)));
+    onSnapshot(query(collection(db, "guard"), orderBy("updatedAt","desc")),
+      snap => renderGames(snap,raceGamesWrap, racePastWrap,raceEmpty, racePastEmpty,"guard",(data) => isRaceMatch(data)));
     onSnapshot(query(collection(db, "normal-match"), orderBy("updatedAt","desc")),
       snap => renderGames(snap, normalGamesWrap, normalPastWrap, normalEmpty, normalPastEmpty, "normal-match"));
     onSnapshot(query(collection(db, "tournament-match"), orderBy("updatedAt","desc")),
@@ -343,7 +481,7 @@
 
     // Tabs
     function setActiveTab(activeId) {
-      ["tab-guard", "tab-normal", "tab-tournament"].forEach(id => {
+      ["tab-guard", "tab-race", "tab-normal", "tab-tournament"].forEach(id => {
         const btn = document.getElementById(id);
         if (id === activeId) btn.classList.add("active");
         else btn.classList.remove("active");
@@ -352,22 +490,123 @@
 
     document.getElementById("tab-guard").onclick = () => {
       document.getElementById("guardView").classList.remove("hidden");
+      document.getElementById("raceView").classList.add("hidden");
       document.getElementById("normalView").classList.add("hidden");
       document.getElementById("tournamentView").classList.add("hidden");
       setActiveTab("tab-guard");
     };
+
+    document.getElementById("tab-race").onclick = () => {
+      document.getElementById("guardView").classList.add("hidden");
+      document.getElementById("raceView").classList.remove("hidden");
+      document.getElementById("normalView").classList.add("hidden");
+      document.getElementById("tournamentView").classList.add("hidden");
+      setActiveTab("tab-race");
+    };    
+
     document.getElementById("tab-normal").onclick = () => {
       document.getElementById("guardView").classList.add("hidden");
+      document.getElementById("raceView").classList.add("hidden");
       document.getElementById("normalView").classList.remove("hidden");
       document.getElementById("tournamentView").classList.add("hidden");
       setActiveTab("tab-normal");
     };
     document.getElementById("tab-tournament").onclick = () => {
       document.getElementById("guardView").classList.add("hidden");
+      document.getElementById("raceView").classList.add("hidden");
       document.getElementById("normalView").classList.add("hidden");
       document.getElementById("tournamentView").classList.remove("hidden");
       setActiveTab("tab-tournament");
     };
+
+    function analyticsRowEditableHTML({ gameId, label, statKey, counts, players, pids, color }) {
+      const max = Math.max(1, ...pids.map(pid => Number(counts?.[pid] ?? 0)));
+
+      const cells = pids.map(pid => {
+        const v = Number(counts?.[pid] ?? 0);
+        const pct = Math.round((v / max) * 100);
+
+        return `
+          <div class="flex-1 text-center analytics-text">
+            <div class="mb-0.5">${players[pid] ?? ("P" + pid)}</div>
+
+            <div class="bg-gray-700 rounded overflow-hidden h-3 mb-0.5">
+              <div class="h-3" style="width:${pct}%; background:${color}"></div>
+            </div>
+
+            <!-- editable count (keeps the same look/placement as live, but input) -->
+            <input
+              class="glass-input text-[10px] w-14 mx-auto"
+              data-kind="stat"
+              data-stat="${statKey}"
+              data-pid="${pid}"
+              inputmode="numeric"
+              value="${v}"
+            />
+          </div>
+        `;
+      }).join("");
+
+      return `
+        <div class="mt-3">
+          <div class="font-semibold text-xs mb-1 text-gray-300">${label}:</div>
+          <div class="flex gap-2">${cells}</div>
+        </div>
+      `;
+    }
+
+    function analyticsBlockHTML(g, players, pids) {
+      const stats = g.actionStats || {};
+      return `
+        <div class="mt-4" data-analytics>
+          ${analyticsRowEditableHTML({
+            gameId: g.id,
+            label: "Fouls",
+            statKey: "foul",
+            counts: stats.foul || {},
+            players,
+            pids,
+            color: "#ef4444",
+          })}
+          ${analyticsRowEditableHTML({
+            gameId: g.id,
+            label: "Wins",
+            statKey: "win",
+            counts: stats.win || {},
+            players,
+            pids,
+            color: "#22c55e",
+          })}
+          ${analyticsRowEditableHTML({
+            gameId: g.id,
+            label: "Golden Breaks",
+            statKey: "golden",
+            counts: stats.golden || {},
+            players,
+            pids,
+            color: "#6366f1",
+          })}
+          ${analyticsRowEditableHTML({
+            gameId: g.id,
+            label: "Break Clears",
+            statKey: "bc",
+            counts: stats.bc || {},
+            players,
+            pids,
+            color: "#facc15",
+          })}
+          ${analyticsRowEditableHTML({
+            gameId: g.id,
+            label: "Dry Clears",
+            statKey: "dry",
+            counts: stats.dry || {},
+            players,
+            pids,
+            color: "#38bdf8",
+          })}          
+        </div>
+      `;
+    }
   </script>
 </body>
 </html>

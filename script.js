@@ -12,11 +12,26 @@
   let actionStatsLog = [];
 
   let actionStats = {
-    win:   {1:0,2:0,3:0,4:0},
-    foul:  {1:0,2:0,3:0,4:0},
-    golden:{1:0,2:0,3:0,4:0},
-    bc:    {1:0,2:0,3:0,4:0}
+    win: { 1: 0, 2: 0, 3: 0, 4: 0 },
+    foul: { 1: 0, 2: 0, 3: 0, 4: 0 },
+    golden: { 1: 0, 2: 0, 3: 0, 4: 0 },
+    bc: { 1: 0, 2: 0, 3: 0, 4: 0 },
+    dry: { 1: 0, 2: 0, 3: 0, 4: 0 },
   };
+
+  function ensureActionStatsShape() {
+    const base = { 1: 0, 2: 0, 3: 0, 4: 0 };
+    actionStats = actionStats || {};
+    ["win", "foul", "golden", "bc", "dry"].forEach((k) => {
+      if (!actionStats[k]) {
+        actionStats[k] = { ...base };
+      } else {
+        [1, 2, 3, 4].forEach((i) => {
+          if (actionStats[k][i] == null) actionStats[k][i] = 0;
+        });
+      }
+    });
+  }
 
   const chartInstances = {};
 
@@ -34,7 +49,7 @@
   live.lastWrittenHash = "";
 
   // Helpers
-  const $  = (sel) => document.querySelector(sel);
+  const $ = (sel) => document.querySelector(sel);
   const $$ = (sel) => Array.from(document.querySelectorAll(sel));
   const deepCopy = (obj) => JSON.parse(JSON.stringify(obj));
 
@@ -63,9 +78,11 @@
           return v.map(helper);
         } else {
           const out = {};
-          Object.keys(v).sort().forEach(k => {
-            out[k] = helper(v[k]);
-          });
+          Object.keys(v)
+            .sort()
+            .forEach((k) => {
+              out[k] = helper(v[k]);
+            });
           return out;
         }
       }
@@ -75,11 +92,12 @@
   }
 
   const getRate = (id) => parseInt($(id)?.value, 10) || 0;
-  const WIN  = () => getRate("#winRate");
+  const WIN = () => getRate("#winRate");
   const FOUL = () => getRate("#foulRate");
-  const BC   = () => getRate("#bcRate");
-  const currentPlayerIds = () => Object.keys(scores).map(k => Number(k));
-  const playerLabels = () => currentPlayerIds().map(pid => getPlayerName(pid));
+  const BC = () => getRate("#bcRate");
+  const currentPlayerIds = () => Object.keys(scores).map((k) => Number(k));
+  const playerLabels = () =>
+    currentPlayerIds().map((pid) => getPlayerName(pid));
 
   const formatTime = (d) => {
     const t = new Date(d);
@@ -91,38 +109,46 @@
   };
 
   if (!localStorage.getItem("guard.clientId")) {
-    localStorage.setItem("guard.clientId", (typeof crypto !== "undefined" && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now() + Math.random()));
+    localStorage.setItem(
+      "guard.clientId",
+      typeof crypto !== "undefined" && crypto.randomUUID
+        ? crypto.randomUUID()
+        : String(Date.now() + Math.random()),
+    );
   }
   live.clientId = localStorage.getItem("guard.clientId");
 
   function initZoomFeature(containerSelector) {
     const slider = document.getElementById("zoomSlider");
     const container = document.querySelector(containerSelector);
-  
+
     if (!slider || !container) return;
-  
+
     // Load saved zoom
-    const savedZoom = parseInt(localStorage.getItem("scoreboard.zoom") || "0", 10);
+    const savedZoom = parseInt(
+      localStorage.getItem("scoreboard.zoom") || "0",
+      10,
+    );
     slider.value = savedZoom;
-  
+
     const applyZoom = (val) => {
       // Scale from 0.5x to 2x
-      let scale = 1 + (val / 100);
+      let scale = 1 + val / 100;
       if (scale < 0.5) scale = 0.5;
       if (scale > 2) scale = 2;
-  
+
       container.style.transform = `scale(${scale})`;
       container.style.transformOrigin = "top center";
     };
-  
+
     applyZoom(savedZoom);
-  
+
     slider.addEventListener("input", () => {
       const zoom = parseInt(slider.value, 10);
       applyZoom(zoom);
       localStorage.setItem("scoreboard.zoom", zoom);
     });
-  }  
+  }
 
   function getPlayerName(i) {
     const el = $(`#name-${i}`);
@@ -167,10 +193,18 @@
 
   function save() {
     const payload = {
-      scores, order, isFourPlayers,
-      historyLog, scoreLog, orderLog, actionStatsLog,
+      scores,
+      order,
+      isFourPlayers,
+      historyLog,
+      scoreLog,
+      orderLog,
+      actionStatsLog,
       players: Object.fromEntries(
-        (isFourPlayers ? [1,2,3,4] : [1,2,3]).map((i) => [i, getPlayerName(i)])
+        (isFourPlayers ? [1, 2, 3, 4] : [1, 2, 3]).map((i) => [
+          i,
+          getPlayerName(i),
+        ]),
       ),
       actionStats,
       rates: { win: WIN(), foul: FOUL(), bc: BC() },
@@ -185,25 +219,27 @@
     try {
       const s = JSON.parse(raw);
       scores = s.scores || {};
-      order = s.order || [1,2,3];
+      order = s.order || [1, 2, 3];
       isFourPlayers = !!s.isFourPlayers;
       historyLog = s.historyLog || [];
       scoreLog = s.scoreLog || [];
       orderLog = s.orderLog || [];
       actionStatsLog = s.actionStatsLog || [];
       actionStats = s.actionStats || actionStats;
+      ensureActionStatsShape();
       if (s.rates) {
-        const winEl  = $("#winRate");
+        const winEl = $("#winRate");
         const foulEl = $("#foulRate");
-        const bcEl   = $("#bcRate");
-        if (winEl)  winEl.value  = s.rates.win;
+        const bcEl = $("#bcRate");
+        if (winEl) winEl.value = s.rates.win;
         if (foulEl) foulEl.value = s.rates.foul;
-        if (bcEl)   bcEl.value   = s.rates.bc;
+        if (bcEl) bcEl.value = s.rates.bc;
       }
       buildPlayers();
       if (s.players) {
-        Object.entries(s.players).forEach(([i,name]) => {
-          const input = $(`#name-${i}`); if (input) input.value = name;
+        Object.entries(s.players).forEach(([i, name]) => {
+          const input = $(`#name-${i}`);
+          if (input) input.value = name;
           setPlayerNameLabel(Number(i));
         });
       }
@@ -229,12 +265,19 @@
 
   function updateSpecialActionButtons() {
     const current = order[0];
+    const next = order[1] ?? order[0];
+
     for (const i of Object.keys(scores)) {
       const card = document.getElementById(`card-${i}`);
       if (!card) continue;
-      const specials = card.querySelectorAll("[data-special]");
-      specials.forEach((btn) => {
-        btn.disabled = parseInt(i, 10) !== current;
+
+      const pid = parseInt(i, 10);
+
+      card.querySelectorAll("[data-special]").forEach((btn) => {
+        const action = btn.getAttribute("data-action");
+        const shouldEnable = action === "dry" ? pid === next : pid === current;
+
+        btn.disabled = !shouldEnable;
         btn.classList.toggle("opacity-50", btn.disabled);
         btn.classList.toggle("cursor-not-allowed", btn.disabled);
       });
@@ -242,40 +285,41 @@
   }
 
   function updateAllScores(prevScores) {
-    const old = prevScores || (scoreLog.length > 1 ? scoreLog[scoreLog.length - 2] : {});
+    const old =
+      prevScores || (scoreLog.length > 1 ? scoreLog[scoreLog.length - 2] : {});
     for (const i of Object.keys(scores)) {
       const el = $(`#score-${i}`);
       if (!el) continue;
       const before = old[i] ?? 0;
       const after = scores[i];
       el.textContent = String(after);
-  
+
       // Pulse opacity on change
       el.classList.remove("opacity-70");
       void el.offsetWidth;
       el.classList.add("opacity-70");
-  
+
       // Reset glow classes
       el.classList.remove("score-glow-green", "score-glow-red");
       void el.offsetWidth;
-  
+
       if (after > before) {
         el.classList.add("score-glow-green");
       } else if (after < before) {
         el.classList.add("score-glow-red");
       }
     }
-  
+
     setTurnOrderText();
     updateCardStyles();
     updateSpecialActionButtons();
     save();
-  
+
     // Only trigger sync when not applying a remote state
     if (!suppressSync) {
       onStateChanged();
     }
-  }  
+  }
 
   function updateOrderAfterWin(winner) {
     const idx = order.indexOf(winner);
@@ -304,7 +348,6 @@
       msg = `${playerName} won ${getPlayerName(prev)}.`;
       actionStats.win[player]++;
       updateOrderAfterWin(player);
-
     } else if (action === "foul") {
       const pts = FOUL();
       scores[player] -= pts;
@@ -312,7 +355,6 @@
       scores[prev] += pts;
       msg = `${playerName} fouled to ${getPlayerName(prev)}.`;
       actionStats.foul[player]++;
-
     } else if (action === "bc") {
       const pts = BC();
       const others = order.filter((p) => p !== player);
@@ -324,7 +366,6 @@
       scores[player] += totalLoss;
       msg = `${playerName} broke clear!`;
       actionStats.bc[player]++;
-
     } else if (action === "golden") {
       const pts = WIN();
       const others = order.filter((p) => p !== player);
@@ -336,6 +377,13 @@
       scores[player] += totalLoss;
       msg = `${playerName} golden break!`;
       actionStats.golden[player]++;
+    } else if (action === "dry") {
+      const pts = BC();
+      scores[player] += pts;
+      const prev = order[(idx - 1 + order.length) % order.length];
+      scores[prev] -= pts;
+      msg = `${playerName} dry cleared against ${getPlayerName(prev)}.`;
+      actionStats.dry[player]++;
     }
 
     logState(msg);
@@ -360,12 +408,13 @@
           </div>
   
           <!-- Action buttons (larger text) -->
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full max-w-md">
-            <button data-action="win"    class="px-3 py-2 rounded glass-btn-emerald text-xl sm:text-2xl uppercase tracking-wide font-bold">WIN</button>
-            <button data-action="foul"   class="px-3 py-2 rounded glass-btn bg-red-600/70 text-white text-xl sm:text-2xl uppercase tracking-wide font-bold">FOUL+</button>
-            <button data-action="bc"     data-special class="px-3 py-2 rounded glass-btn bg-yellow-500/80 text-black text-xl sm:text-2xl uppercase tracking-wide font-bold">BC</button>
+          <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 w-full max-w-md">
+            <button data-action="win" class="px-3 py-2 rounded glass-btn-emerald text-xl sm:text-2xl uppercase tracking-wide font-bold">WIN</button>
+            <button data-action="foul" class="px-3 py-2 rounded glass-btn bg-red-600/70 text-white text-xl sm:text-2xl uppercase tracking-wide font-bold">FOUL+</button>
+            <button data-action="bc" data-special class="px-3 py-2 rounded glass-btn bg-yellow-500/80 text-black text-xl sm:text-2xl uppercase tracking-wide font-bold">BC</button>
             <button data-action="golden" data-special class="px-3 py-2 rounded glass-btn bg-indigo-600/80 text-white text-xl sm:text-2xl uppercase tracking-wide font-bold">GOLDEN</button>
-          </div>
+            <button data-action="dry" data-special class="px-3 py-2 rounded glass-btn bg-sky-500/80 text-white text-xl sm:text-2xl uppercase tracking-wide font-bold">DC</button>
+            </div>
         </div>
       </div>`;
   }
@@ -465,11 +514,11 @@
         labels: scoreLog.map((_, i) => `Turn ${i}`),
         datasets: currentPlayerIds().map((pid, idx) => ({
           label: getPlayerName(pid),
-          data: scoreLog.map(s => (s && s[pid] != null ? s[pid] : 0)),
-          borderColor: ["#ef4444","#3b82f6","#22c55e","#f59e0b"][idx % 4],
+          data: scoreLog.map((s) => (s && s[pid] != null ? s[pid] : 0)),
+          borderColor: ["#ef4444", "#3b82f6", "#22c55e", "#f59e0b"][idx % 4],
           fill: false,
-          tension: 0.2
-        }))
+          tension: 0.2,
+        })),
       },
       options: {
         responsive: true,
@@ -479,16 +528,16 @@
           y: {
             beginAtZero: false,
             afterDataLimits: (scale) => {
-              const range = (scale.max - scale.min) || 1;
+              const range = scale.max - scale.min || 1;
               const pad = range * 0.1;
               scale.max += pad;
               scale.min -= pad;
             },
-            ticks: { color: "#fff" }
+            ticks: { color: "#fff" },
           },
-          x: { ticks: { color: "#fff" } }
-        }
-      }
+          x: { ticks: { color: "#fff" } },
+        },
+      },
     };
   }
 
@@ -497,11 +546,13 @@
       type: "bar",
       data: {
         labels: playerLabels(),
-        datasets: [{
-          label: title,
-          data: currentPlayerIds().map(pid => dataObj[pid] || 0),
-          backgroundColor: color
-        }]
+        datasets: [
+          {
+            label: title,
+            data: currentPlayerIds().map((pid) => dataObj[pid] || 0),
+            backgroundColor: color,
+          },
+        ],
       },
       options: {
         responsive: true,
@@ -513,13 +564,13 @@
             ticks: {
               stepSize: 1,
               precision: 0,
-              callback: (value) => Number.isInteger(value) ? value : null,
-              color: "#fff"
-            }
+              callback: (value) => (Number.isInteger(value) ? value : null),
+              color: "#fff",
+            },
           },
-          x: { ticks: { color: "#fff" } }
-        }
-      }
+          x: { ticks: { color: "#fff" } },
+        },
+      },
     };
   }
 
@@ -527,28 +578,48 @@
     if (canvasId === "scoreChart") {
       ensureChart("scoreChart", lineChartConfig);
     } else if (canvasId === "foulChart") {
-      ensureChart("foulChart", () => barChartConfig("Fouls", actionStats.foul, "#ef4444"));
+      ensureChart("foulChart", () =>
+        barChartConfig("Fouls", actionStats.foul, "#ef4444"),
+      );
     } else if (canvasId === "winChart") {
-      ensureChart("winChart", () => barChartConfig("Wins", actionStats.win, "#22c55e"));
+      ensureChart("winChart", () =>
+        barChartConfig("Wins", actionStats.win, "#22c55e"),
+      );
     } else if (canvasId === "goldenChart") {
-      ensureChart("goldenChart", () => barChartConfig("Golden Breaks", actionStats.golden, "#6366f1"));
+      ensureChart("goldenChart", () =>
+        barChartConfig("Golden Breaks", actionStats.golden, "#6366f1"),
+      );
     } else if (canvasId === "bcChart") {
-      ensureChart("bcChart", () => barChartConfig("Break Clears", actionStats.bc, "#facc15"));
+      ensureChart("bcChart", () =>
+        barChartConfig("Break Clears", actionStats.bc, "#facc15"),
+      );
+    } else if (canvasId === "dryChart") {
+      ensureChart("dryChart", () =>
+        barChartConfig("Dry Clears", actionStats.dry, "#38bdf8"),
+      );
     }
   }
 
   function switchAnalyticsTab(targetId) {
     const tabs = $$(".analytics-tab");
     const canvases = $$(".analytics-canvas");
-    tabs.forEach(t => t.classList.remove("bg-gray-200","dark:bg-gray-700","font-bold"));
-    const activeBtn = Array.from(tabs).find(t => t.dataset.target === targetId);
-    if (activeBtn) activeBtn.classList.add("bg-gray-200","dark:bg-gray-700","font-bold");
-    canvases.forEach(c => {
+    tabs.forEach((t) =>
+      t.classList.remove("bg-gray-200", "dark:bg-gray-700", "font-bold"),
+    );
+    const activeBtn = Array.from(tabs).find(
+      (t) => t.dataset.target === targetId,
+    );
+    if (activeBtn)
+      activeBtn.classList.add("bg-gray-200", "dark:bg-gray-700", "font-bold");
+    canvases.forEach((c) => {
       if (c.id === targetId) {
         c.classList.remove("hidden");
       } else {
         c.classList.add("hidden");
-        if (chartInstances[c.id]) { chartInstances[c.id].destroy(); delete chartInstances[c.id]; }
+        if (chartInstances[c.id]) {
+          chartInstances[c.id].destroy();
+          delete chartInstances[c.id];
+        }
       }
     });
     renderChartFor(targetId);
@@ -556,7 +627,7 @@
 
   function initAnalyticsTabs() {
     const tabs = $$(".analytics-tab");
-    tabs.forEach(tab => {
+    tabs.forEach((tab) => {
       tab._boundClick && tab.removeEventListener("click", tab._boundClick);
       tab._boundClick = () => switchAnalyticsTab(tab.dataset.target);
       tab.addEventListener("click", tab._boundClick);
@@ -565,14 +636,16 @@
 
   // Firestore Sync (collab)
   function buildLivePayload() {
-    const playerIds = Object.keys(scores).map(n => Number(n));
+    const playerIds = Object.keys(scores).map((n) => Number(n));
     const players = {};
-    playerIds.forEach(pid => { players[pid] = getPlayerName(pid); });
-  
-    const safeOrderLog  = orderLog.map(arr => [...arr]);
-    const safeScoreLog  = scoreLog.map(obj => ({ ...obj }));
-    const safeHistoryLog = historyLog.map(h => ({ ...h }));
-  
+    playerIds.forEach((pid) => {
+      players[pid] = getPlayerName(pid);
+    });
+
+    const safeOrderLog = orderLog.map((arr) => [...arr]);
+    const safeScoreLog = scoreLog.map((obj) => ({ ...obj }));
+    const safeHistoryLog = historyLog.map((h) => ({ ...h }));
+
     return {
       title: "Guard Scoreboard",
       players,
@@ -582,7 +655,7 @@
       order: [...order],
       historyLog: safeHistoryLog,
       scoreLog: safeScoreLog,
-      orderLog: safeOrderLog.map(arr => arr.join(",")),
+      orderLog: safeOrderLog.map((arr) => arr.join(",")),
       rates: {
         win: WIN(),
         foul: FOUL(),
@@ -600,12 +673,12 @@
     // Build normalized "meaningful" snapshot
     const meaningful = {
       scores: data.scores || {},
-      order: data.order || [1,2,3],
+      order: data.order || [1, 2, 3],
       isFourPlayers: !!data.isFourPlayers,
       historyLog: data.historyLog || [],
       scoreLog: data.scoreLog || [],
-      orderLog: (data.orderLog || []).map(item =>
-        Array.isArray(item) ? item.join(",") : String(item)
+      orderLog: (data.orderLog || []).map((item) =>
+        Array.isArray(item) ? item.join(",") : String(item),
       ),
       actionStats: data.actionStats || {},
       players: data.players || {},
@@ -621,15 +694,16 @@
     // Apply remote state with sync suppression to avoid loops
     suppressSync = true;
     try {
-      scores        = data.scores      || {};
-      order         = data.order       || [1, 2, 3];
+      scores = data.scores || {};
+      order = data.order || [1, 2, 3];
       isFourPlayers = !!data.isFourPlayers;
-      historyLog    = data.historyLog  || [];
-      scoreLog      = data.scoreLog    || [];
-      orderLog      = (data.orderLog || []).map(item =>
-        typeof item === "string" ? item.split(",").map(Number) : item
+      historyLog = data.historyLog || [];
+      scoreLog = data.scoreLog || [];
+      orderLog = (data.orderLog || []).map((item) =>
+        typeof item === "string" ? item.split(",").map(Number) : item,
       );
-      actionStats   = data.actionStats || actionStats;
+      actionStats = data.actionStats || actionStats;
+      ensureActionStatsShape();
 
       buildPlayers();
 
@@ -642,9 +716,12 @@
       }
 
       if (data.rates) {
-        if ($("#winRate"))  $("#winRate").value  = data.rates.win ?? $("#winRate").value;
-        if ($("#foulRate")) $("#foulRate").value = data.rates.foul ?? $("#foulRate").value;
-        if ($("#bcRate"))   $("#bcRate").value   = data.rates.bc ?? $("#bcRate").value;
+        if ($("#winRate"))
+          $("#winRate").value = data.rates.win ?? $("#winRate").value;
+        if ($("#foulRate"))
+          $("#foulRate").value = data.rates.foul ?? $("#foulRate").value;
+        if ($("#bcRate"))
+          $("#bcRate").value = data.rates.bc ?? $("#bcRate").value;
       }
 
       setTurnOrderText();
@@ -661,19 +738,19 @@
     } finally {
       suppressSync = false;
     }
-  }  
+  }
 
   const debouncedSyncLive = (() => {
     let t;
     return function () {
       if (!live.enabled || !live.ref) return;
       clearTimeout(t);
-  
+
       t = setTimeout(async () => {
         try {
           const { fns } = window.__live;
           const newPayload = buildLivePayload();
-  
+
           const minimalPayload = {
             scores: newPayload.scores,
             order: newPayload.order,
@@ -685,15 +762,15 @@
             players: newPayload.players,
             rates: newPayload.rates,
           };
-  
+
           const newHash = stableStringify(minimalPayload);
-  
+
           // Only write if this differs from the last write
           if (live.lastWrittenHash === newHash) {
             return;
           }
           live.lastWrittenHash = newHash;
-  
+
           await fns.updateDoc(live.ref, {
             ...newPayload,
             status: "live",
@@ -705,7 +782,7 @@
         }
       }, 500);
     };
-  })();  
+  })();
 
   function onStateChanged() {
     // Only write if we have a ref and we want to collaborate (both creator and joiners write)
@@ -713,15 +790,24 @@
   }
 
   function attachLiveListener(ref) {
-    if (live.unsub) { try { live.unsub(); } catch {} live.unsub = null; }
+    if (live.unsub) {
+      try {
+        live.unsub();
+      } catch {}
+      live.unsub = null;
+    }
 
     const { fns } = window.__live;
-    live.unsub = fns.onSnapshot(ref, (doc) => {
-      const data = doc.data();
-      if (data) applyRemoteState(data);
-    }, (err) => {
-      console.warn("live onSnapshot error:", err);
-    });
+    live.unsub = fns.onSnapshot(
+      ref,
+      (doc) => {
+        const data = doc.data();
+        if (data) applyRemoteState(data);
+      },
+      (err) => {
+        console.warn("live onSnapshot error:", err);
+      },
+    );
   }
 
   // Controls Panel
@@ -729,7 +815,7 @@
     const panel = document.getElementById("controlsPanel");
     const toggle = document.getElementById("controlsToggle");
     if (!panel || !toggle) return;
-    panel.style.maxHeight = open ? (panel.scrollHeight + "px") : "0px";
+    panel.style.maxHeight = open ? panel.scrollHeight + "px" : "0px";
     toggle.setAttribute("aria-expanded", open ? "true" : "false");
     localStorage.setItem("wandollah.controlsOpen", open ? "1" : "0");
   }
@@ -755,42 +841,53 @@
   }
 
   // Public UI Actions
-  window.togglePlayerMode = function() {
+  window.togglePlayerMode = function () {
     const futureCount = isFourPlayers ? 3 : 4;
     if (!confirm(`Switch to ${futureCount} players?`)) return;
 
     // Preserve names before toggle
     const prevPlayers = {};
-    (isFourPlayers ? [1,2,3,4] : [1,2,3]).forEach(i => prevPlayers[i] = getPlayerName(i));
+    (isFourPlayers ? [1, 2, 3, 4] : [1, 2, 3]).forEach(
+      (i) => (prevPlayers[i] = getPlayerName(i)),
+    );
 
     isFourPlayers = !isFourPlayers;
-    order = isFourPlayers ? [1,2,3,4] : [1,2,3];
+    order = isFourPlayers ? [1, 2, 3, 4] : [1, 2, 3];
 
     buildPlayers();
 
     // Refill preserved names into new inputs
-    const nowPlayers = isFourPlayers ? [1,2,3,4] : [1,2,3];
-    nowPlayers.forEach(i => {
+    const nowPlayers = isFourPlayers ? [1, 2, 3, 4] : [1, 2, 3];
+    nowPlayers.forEach((i) => {
       const input = $(`#name-${i}`);
       if (input && prevPlayers[i]) input.value = prevPlayers[i];
       setPlayerNameLabel(i);
     });
 
     setTurnOrderText();
-    logState(isFourPlayers ? "Switched to 4 players." : "Switched to 3 players.");
+    logState(
+      isFourPlayers ? "Switched to 4 players." : "Switched to 3 players.",
+    );
     rebuildHistoryUI();
     updateAllScores();
   };
 
-  window.clearGameData = function() {
+  window.clearGameData = function () {
     if (!confirm("Clear all scores and history?")) return;
     scores = {};
-    order = [1,2,3];
+    order = [1, 2, 3];
     isFourPlayers = false;
     historyLog = [];
     scoreLog = [];
     orderLog = [];
-    actionStats = { win:{1:0,2:0,3:0,4:0}, foul:{1:0,2:0,3:0,4:0}, golden:{1:0,2:0,3:0,4:0}, bc:{1:0,2:0,3:0,4:0} };
+    actionStats = {
+      win: { 1: 0, 2: 0, 3: 0, 4: 0 },
+      foul: { 1: 0, 2: 0, 3: 0, 4: 0 },
+      golden: { 1: 0, 2: 0, 3: 0, 4: 0 },
+      bc: { 1: 0, 2: 0, 3: 0, 4: 0 },
+      dry: { 1: 0, 2: 0, 3: 0, 4: 0 },
+    };
+    ensureActionStatsShape();
     buildPlayers();
     setTurnOrderText();
     logState("Game Started");
@@ -798,15 +895,33 @@
     updateAllScores();
   };
 
-  window.showHelp = () => { $("#helpPopup")?.classList.remove("hidden"); };
-  window.hideHelp = () => { $("#helpPopup")?.classList.add("hidden"); };
+  window.showHelp = () => {
+    $("#helpPopup")?.classList.remove("hidden");
+  };
+  window.hideHelp = () => {
+    $("#helpPopup")?.classList.add("hidden");
+  };
 
-  window.showHistory = () => { rebuildHistoryUI(); $("#historyPopup")?.classList.remove("hidden"); };
-  window.hideHistory = () => { $("#historyPopup")?.classList.add("hidden"); };
+  window.showHistory = () => {
+    rebuildHistoryUI();
+    $("#historyPopup")?.classList.remove("hidden");
+  };
+  window.hideHistory = () => {
+    $("#historyPopup")?.classList.add("hidden");
+  };
 
   // ---- Undo (one action at a time) ----
   window.undoLastAction = function () {
-    if (!scoreLog || scoreLog.length <= 1 || !orderLog || orderLog.length <= 1 || !historyLog || historyLog.length <= 1 || !actionStatsLog || actionStatsLog.length <= 1) {
+    if (
+      !scoreLog ||
+      scoreLog.length <= 1 ||
+      !orderLog ||
+      orderLog.length <= 1 ||
+      !historyLog ||
+      historyLog.length <= 1 ||
+      !actionStatsLog ||
+      actionStatsLog.length <= 1
+    ) {
       alert("Nothing to undo yet.");
       return;
     }
@@ -821,11 +936,19 @@
 
     // Restore previous snapshot
     const prevScores = scoreLog[scoreLog.length - 1] || {};
-    const prevOrder  = orderLog[orderLog.length - 1] || (isFourPlayers ? [1,2,3,4] : [1,2,3]);
-    const prevStats  = actionStatsLog[actionStatsLog.length - 1] || deepCopy(actionStats);
+    const prevOrder =
+      orderLog[orderLog.length - 1] ||
+      (isFourPlayers ? [1, 2, 3, 4] : [1, 2, 3]);
+    const prevStats =
+      actionStatsLog[actionStatsLog.length - 1] || deepCopy(actionStats);
 
     scores = deepCopy(prevScores);
-    order  = Array.isArray(prevOrder) ? [...prevOrder] : String(prevOrder).split(",").map(n => parseInt(n,10)).filter(Boolean);
+    order = Array.isArray(prevOrder)
+      ? [...prevOrder]
+      : String(prevOrder)
+          .split(",")
+          .map((n) => parseInt(n, 10))
+          .filter(Boolean);
 
     actionStats = deepCopy(prevStats);
 
@@ -851,17 +974,19 @@
     const count = isFourPlayers ? 4 : 3;
 
     const currentNames = order.map((pid) => getPlayerName(pid));
-    const hint = isFourPlayers ? "e.g. 2,1,4,3 or KM, JL, Jeremy, Nobel" : "e.g. 2,1,3 or KM, JL, Jeremy";
+    const hint = isFourPlayers
+      ? "e.g. 2,1,4,3 or KM, JL, Jeremy, Nobel"
+      : "e.g. 2,1,3 or KM, JL, Jeremy";
 
     const input = prompt(
       `Edit turn order (${count} players).\nEnter player numbers or names separated by commas.\n${hint}`,
-      currentNames.join(", ")
+      currentNames.join(", "),
     );
     if (input === null) return;
 
     const tokens = input
       .split(/[,>→]+/g)
-      .map(s => s.trim())
+      .map((s) => s.trim())
       .filter(Boolean);
 
     if (tokens.length !== count) {
@@ -870,7 +995,11 @@
     }
 
     // Build a lookup of normalized names -> pid from current inputs
-    const norm = (s) => String(s || "").trim().toLowerCase().replace(/\s+/g, "");
+    const norm = (s) =>
+      String(s || "")
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, "");
     const nameToPid = new Map();
     for (let pid = 1; pid <= count; pid++) {
       nameToPid.set(norm(String(pid)), pid);
@@ -890,7 +1019,9 @@
       if (!pid && nameToPid.has(n)) pid = nameToPid.get(n);
 
       if (!pid || pid < 1 || pid > count) {
-        alert(`Could not understand "${t}". Use player numbers 1-${count} or exact player names.`);
+        alert(
+          `Could not understand "${t}". Use player numbers 1-${count} or exact player names.`,
+        );
         return;
       }
       newOrder.push(pid);
@@ -913,7 +1044,6 @@
     setTurnOrderText();
     updateSpecialActionButtons();
   };
-
 
   window.showAnalytics = () => {
     const popup = $("#analyticsPopup");
@@ -945,12 +1075,20 @@
     if (live.enabled && live.ref) {
       // Stop (set status ended but keep doc for history)
       try {
-        await fns.updateDoc(live.ref, { status: "ended", updatedAt: fns.serverTimestamp() });
+        await fns.updateDoc(live.ref, {
+          status: "ended",
+          updatedAt: fns.serverTimestamp(),
+        });
       } catch {}
       live.enabled = false;
       live.ref = null;
       live.gameId = null;
-      if (live.unsub) { try { live.unsub(); } catch {} live.unsub = null; }
+      if (live.unsub) {
+        try {
+          live.unsub();
+        } catch {}
+        live.unsub = null;
+      }
       localStorage.removeItem(LIVE_STORAGE_KEY);
       const btn = $("#liveToggle");
       if (btn) {
@@ -967,54 +1105,58 @@
         live.ref = ref;
         live.gameId = existingId;
         live.enabled = true;
-    
+
         // Fetch existing to get joinCode
         const snap = await fns.getDoc(ref);
         let joinCode = snap.exists() ? snap.data().joinCode : null;
         if (!joinCode) {
           joinCode = Math.floor(1000 + Math.random() * 9000).toString();
         }
-    
-        await fns.setDoc(ref, { 
-          ...buildLivePayload(), 
-          joinCode,
-          updatedAt: fns.serverTimestamp() 
-        }, { merge: true });
-    
+
+        await fns.setDoc(
+          ref,
+          {
+            ...buildLivePayload(),
+            joinCode,
+            updatedAt: fns.serverTimestamp(),
+          },
+          { merge: true },
+        );
+
         attachLiveListener(ref);
-        const idEl = $("#scoreboardId");
-        if (idEl) idEl.textContent = joinCode;
-        
-        // Update UI with join code
-        const codeEl = document.getElementById("currentCode");
-        if (codeEl) codeEl.textContent = joinCode;    
-        
-        alert(`Live sharing resumed.\nShare this Scoreboard ID: ${joinCode}`);
-      } else {
-        const gamesCol = fns.collection(db, "guard");
-        const initial = buildLivePayload();
-    
-        // Create new 4-digit join code
-        const joinCode = Math.floor(1000 + Math.random() * 9000).toString();
-        initial.joinCode = joinCode;
-        initial.createdAt = fns.serverTimestamp();
-        initial.updatedAt = fns.serverTimestamp();
-    
-        const ref = await fns.addDoc(gamesCol, initial);
-        live.ref = ref;
-        live.gameId = ref.id;
-        live.enabled = true;
-        localStorage.setItem(LIVE_STORAGE_KEY, ref.id);
-    
-        attachLiveListener(ref);
-    
         const idEl = $("#scoreboardId");
         if (idEl) idEl.textContent = joinCode;
 
         // Update UI with join code
         const codeEl = document.getElementById("currentCode");
         if (codeEl) codeEl.textContent = joinCode;
-        
+
+        alert(`Live sharing resumed.\nShare this Scoreboard ID: ${joinCode}`);
+      } else {
+        const gamesCol = fns.collection(db, "guard");
+        const initial = buildLivePayload();
+
+        // Create new 4-digit join code
+        const joinCode = Math.floor(1000 + Math.random() * 9000).toString();
+        initial.joinCode = joinCode;
+        initial.createdAt = fns.serverTimestamp();
+        initial.updatedAt = fns.serverTimestamp();
+
+        const ref = await fns.addDoc(gamesCol, initial);
+        live.ref = ref;
+        live.gameId = ref.id;
+        live.enabled = true;
+        localStorage.setItem(LIVE_STORAGE_KEY, ref.id);
+
+        attachLiveListener(ref);
+
+        const idEl = $("#scoreboardId");
+        if (idEl) idEl.textContent = joinCode;
+
+        // Update UI with join code
+        const codeEl = document.getElementById("currentCode");
+        if (codeEl) codeEl.textContent = joinCode;
+
         alert(`Live sharing started.\nShare this Scoreboard ID: ${joinCode}`);
       }
     }
@@ -1034,23 +1176,29 @@
     const code = (input?.value || "").trim();
     const errEl = $("#joinError");
     if (!code) return;
-  
+
     if (!window.__live?.db) {
-      if (errEl) { errEl.textContent = "Firebase not initialized."; errEl.classList.remove("hidden"); }
+      if (errEl) {
+        errEl.textContent = "Firebase not initialized.";
+        errEl.classList.remove("hidden");
+      }
       return;
     }
-  
+
     try {
       const { db, fns } = window.__live;
-  
+
       // Query games by joinCode
-      const q = fns.query(fns.collection(db, "guard"), fns.where("joinCode", "==", code));
+      const q = fns.query(
+        fns.collection(db, "guard"),
+        fns.where("joinCode", "==", code),
+      );
       const snap = await fns.getDocs(q);
-  
+
       if (!snap.empty) {
         const doc = snap.docs[0];
         const found = doc.id;
-  
+
         // Save, attach, and enable collaboration for this doc
         localStorage.setItem(LIVE_STORAGE_KEY, found);
         const ref = fns.doc(db, "guard", found);
@@ -1062,7 +1210,7 @@
 
         const idEl = $("#scoreboardId");
         if (idEl) idEl.textContent = code;
-  
+
         // UI feedback
         const btn = $("#liveToggle");
         if (btn) {
@@ -1070,10 +1218,10 @@
           btn.classList.remove("bg-emerald-600");
           btn.classList.add("bg-red-600");
         }
-
       } else {
         if (errEl) {
-          errEl.textContent = "Match not found! Please check if your ID is correct.";
+          errEl.textContent =
+            "Match not found! Please check if your ID is correct.";
           errEl.classList.remove("hidden");
         }
       }
@@ -1084,7 +1232,7 @@
         errEl.classList.remove("hidden");
       }
     }
-  }  
+  }
 
   // Bootstrap
   function bootstrap() {
@@ -1104,8 +1252,14 @@
     ["#winRate", "#foulRate", "#bcRate"].forEach((id) => {
       const el = $(id);
       if (!el) return;
-      el.addEventListener("change", () => { save(); onStateChanged(); });
-      el.addEventListener("input",  () => { save(); onStateChanged(); });
+      el.addEventListener("change", () => {
+        save();
+        onStateChanged();
+      });
+      el.addEventListener("input", () => {
+        save();
+        onStateChanged();
+      });
     });
 
     initControlsCollapsible();
@@ -1118,8 +1272,12 @@
 
     // Hotkey: Z to undo last action (when not typing in an input)
     document.addEventListener("keydown", (e) => {
-      const tag = (e.target && e.target.tagName) ? e.target.tagName.toLowerCase() : "";
-      const typing = tag === "input" || tag === "textarea" || (e.target && e.target.isContentEditable);
+      const tag =
+        e.target && e.target.tagName ? e.target.tagName.toLowerCase() : "";
+      const typing =
+        tag === "input" ||
+        tag === "textarea" ||
+        (e.target && e.target.isContentEditable);
       if (typing) return;
       if (e.key === "z" || e.key === "Z") {
         e.preventDefault();
@@ -1127,14 +1285,14 @@
       }
     });
 
-
     // Join Session UI
     const joinBtn = $("#joinSessionBtn");
     if (joinBtn) joinBtn.addEventListener("click", openJoinPopup);
     const joinInput = $("#joinInput");
-    if (joinInput) joinInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") joinSession();
-    });
+    if (joinInput)
+      joinInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") joinSession();
+      });
 
     // If a session id already saved (joined or created earlier), attach listener and enable writes
     if (window.__live?.db) {
@@ -1159,7 +1317,7 @@
             const idEl = $("#scoreboardId");
             if (idEl && joinCode) idEl.textContent = joinCode;
           }
-        });        
+        });
       }
     }
     // Enable copy-to-clipboard on scoreboard ID
@@ -1195,10 +1353,9 @@
 
   initZoomFeature("#playerContainer");
   document.addEventListener("DOMContentLoaded", bootstrap);
-  
+
   // Expose join popup helpers globally (used by HTML onclick)
   window.openJoinPopup = openJoinPopup;
   window.closeJoinPopup = closeJoinPopup;
   window.joinSession = joinSession;
-
 })();

@@ -5,7 +5,7 @@ window.addEventListener("DOMContentLoaded", () => {
     // Safety checks
     if (!window.__live || !window.__live.db || !window.__live.fns) {
       console.error(
-        "[normal-script] Missing window.__live db/fns. Make sure the module script that initializes Firebase ran before this file."
+        "[normal-script] Missing window.__live db/fns. Make sure the module script that initializes Firebase ran before this file.",
       );
     }
 
@@ -180,7 +180,9 @@ window.addEventListener("DOMContentLoaded", () => {
         updatedAt: serverTimestamp(),
       };
       const ref = await addDoc(collection(db, "normal-match"), payload);
-      appendHistory(`Created scoreboard (ID ${code}, hash ...${ref.id.slice(-6)})`);
+      appendHistory(
+        `Created scoreboard (ID ${code}, hash ...${ref.id.slice(-6)})`,
+      );
       return { ref, code };
     }
 
@@ -193,12 +195,18 @@ window.addEventListener("DOMContentLoaded", () => {
       }
       if (isFourDigitCode(codeOrId)) {
         // First try normal-match
-        let q = query(collection(db, "normal-match"), where("scoreboardCode", "==", codeOrId));
+        let q = query(
+          collection(db, "normal-match"),
+          where("scoreboardCode", "==", codeOrId),
+        );
         let snap = await getDocs(q);
         if (!snap.empty) return snap.docs[0].ref;
 
         // Then try tournament-match
-        q = query(collection(db, "tournament-match"), where("scoreboardCode", "==", codeOrId));
+        q = query(
+          collection(db, "tournament-match"),
+          where("scoreboardCode", "==", codeOrId),
+        );
         snap = await getDocs(q);
         if (!snap.empty) return snap.docs[0].ref;
 
@@ -246,8 +254,10 @@ window.addEventListener("DOMContentLoaded", () => {
             setText(els.score2, state.scores[2]);
           }
           if (d.actionStats && d.actionStats.foul) {
-            state.actionStats.foul[1] = d.actionStats.foul[1] ?? state.actionStats.foul[1];
-            state.actionStats.foul[2] = d.actionStats.foul[2] ?? state.actionStats.foul[2];
+            state.actionStats.foul[1] =
+              d.actionStats.foul[1] ?? state.actionStats.foul[1];
+            state.actionStats.foul[2] =
+              d.actionStats.foul[2] ?? state.actionStats.foul[2];
           }
 
           if (typeof d.status === "string") {
@@ -277,7 +287,10 @@ window.addEventListener("DOMContentLoaded", () => {
                 }
               }
             } catch (err) {
-              console.warn("[normal-script] failed to load tournament details:", err);
+              console.warn(
+                "[normal-script] failed to load tournament details:",
+                err,
+              );
             }
           }
 
@@ -286,7 +299,7 @@ window.addEventListener("DOMContentLoaded", () => {
         (err) => {
           console.error("[normal-script] Snapshot error", err);
           appendHistory("Snapshot error: " + err.message);
-        }
+        },
       );
     }
 
@@ -314,7 +327,11 @@ window.addEventListener("DOMContentLoaded", () => {
       try {
         const sbSnap = await getDoc(state.sbRef);
         const d = sbSnap.data();
-        if (d?.tournamentId && d?.roundKey && typeof d?.matchIndex === "number") {
+        if (
+          d?.tournamentId &&
+          d?.roundKey &&
+          typeof d?.matchIndex === "number"
+        ) {
           const tRef = doc(db, "tournaments", d.tournamentId);
           const tSnap = await getDoc(tRef);
           if (!tSnap.exists()) return;
@@ -351,7 +368,8 @@ window.addEventListener("DOMContentLoaded", () => {
     // UI wiring
     if (els.controlsToggle && els.controlsPanel) {
       els.controlsToggle.addEventListener("click", () => {
-        const expanded = els.controlsToggle.getAttribute("aria-expanded") === "true";
+        const expanded =
+          els.controlsToggle.getAttribute("aria-expanded") === "true";
         const next = !expanded;
         els.controlsToggle.setAttribute("aria-expanded", String(next));
         els.controlsPanel.style.maxHeight = next ? "500px" : "0";
@@ -359,7 +377,9 @@ window.addEventListener("DOMContentLoaded", () => {
     }
 
     if (els.zoomSlider) {
-      els.zoomSlider.addEventListener("input", (e) => applyZoom(e.target.value));
+      els.zoomSlider.addEventListener("input", (e) =>
+        applyZoom(e.target.value),
+      );
       applyZoom(els.zoomSlider.value || 0);
     }
 
@@ -392,11 +412,11 @@ window.addEventListener("DOMContentLoaded", () => {
       els.playerContainer.addEventListener("click", (e) => {
         const btn = e.target.closest("button[data-action]");
         if (!btn) return;
-    
+
         // Find the nearest player card by id
         const card = btn.closest('[id^="card-"]');
         const who = card ? Number(card.id.split("-")[1]) : 1;
-    
+
         const action = btn.getAttribute("data-action");
         if (action === "plus") changeScore(who, +1);
         else if (action === "minus") changeScore(who, -1);
@@ -420,11 +440,11 @@ window.addEventListener("DOMContentLoaded", () => {
             els.currentCode,
             isFourDigitCode(input)
               ? input
-              : state?.lastSnapshot?.scoreboardCode || "----"
+              : state?.lastSnapshot?.scoreboardCode || "----",
           );
           setText(els.legacyHash, ref.id.slice(-6));
           appendHistory(
-            `Joined scoreboard (${isFourDigitCode(input) ? "code" : "id"}: ${input})`
+            `Joined scoreboard (${isFourDigitCode(input) ? "code" : "id"}: ${input})`,
           );
           saveLocalState();
         } catch (err) {
@@ -490,7 +510,7 @@ window.addEventListener("DOMContentLoaded", () => {
       let after = before + delta;
       if (after < 0) after = 0;
       state.scores[who] = after;
-    
+
       // Dynamically grab the correct score element
       const el = document.getElementById(`score-${who}`);
       if (el) {
@@ -498,18 +518,20 @@ window.addEventListener("DOMContentLoaded", () => {
         el.style.transform = "scale(1.08)";
         setTimeout(() => (el.style.transform = "scale(1.0)"), 120);
       }
-    
+
       appendHistory(`Score ${who}: ${before} -> ${after}`);
       pushScoresDebounced();
       saveLocalState();
-    }    
+    }
 
     function onFoul(who, triggerBtn) {
       const card = who === 1 ? els.card1 : els.card2;
       floatFoulAt(card, triggerBtn);
 
       state.actionStats.foul[who] = (state.actionStats.foul[who] || 0) + 1;
-      appendHistory(`FOUL on Player ${who} (total: ${state.actionStats.foul[who]})`);
+      appendHistory(
+        `FOUL on Player ${who} (total: ${state.actionStats.foul[who]})`,
+      );
 
       if (state.joined && state.sbRef) {
         pushUpdate({ actionStats: state.actionStats });
